@@ -31,3 +31,4 @@ C:\Users\sorat\source\repos\MailApplication\obj\Debug\net8.0-windows\refint\Mail
 C:\Users\sorat\source\repos\MailApplication\obj\Debug\net8.0-windows\MailApplication.pdb
 C:\Users\sorat\source\repos\MailApplication\obj\Debug\net8.0-windows\MailApplication.genruntimeconfig.cache
 C:\Users\sorat\source\repos\MailApplication\obj\Debug\net8.0-windows\ref\MailApplication.dll
+C:\Users\sorat\source\repos\MailApplication\obj\Debug\net8.0-windows\MailApplication.sourcelink.json

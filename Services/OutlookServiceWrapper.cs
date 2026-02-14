@@ -265,7 +265,7 @@ public class OutlookService
             if (mailItem != null)
             {
                 var itemType = mailItem.GetType();
-                itemType.InvokeMember("To", System.Reflection.BindingFlags.SetProperty, null, mailItem, new object[] { "" });
+                // itemType.InvokeMember("To", System.Reflection.BindingFlags.SetProperty, null, mailItem, new object[] { "" });
                 itemType.InvokeMember("Subject", System.Reflection.BindingFlags.SetProperty, null, mailItem, new object[] { subject });
 
                 if (isHtml)
