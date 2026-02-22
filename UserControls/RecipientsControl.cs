@@ -117,7 +117,7 @@ public partial class RecipientsControl : UserControl
 
     private Button CreateButton(string text, int left)
     {
-        return new Button
+        var btn = new Button
         {
             Text = text,
             Location = new Point(left, 5),
@@ -128,6 +128,8 @@ public partial class RecipientsControl : UserControl
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             Cursor = Cursors.Hand
         };
+        btn.FlatAppearance.BorderSize = 0;
+        return btn;
     }
 
     private async void LoadData()
@@ -168,7 +170,12 @@ public partial class RecipientsControl : UserControl
 
         if (selectedIndustry != "All Industries" && !string.IsNullOrEmpty(selectedIndustry))
         {
-            filteredRecipients = filteredRecipients.Where(r => r.Industries.Contains(selectedIndustry));
+            // Find industry by name to get its ObjectId
+            var industry = _allIndustries.FirstOrDefault(i => i.Name == selectedIndustry);
+            if (industry != null && !string.IsNullOrEmpty(industry.Id))
+            {
+                filteredRecipients = filteredRecipients.Where(r => r.Industries.Contains(industry.Id));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(searchText))
@@ -182,12 +189,26 @@ public partial class RecipientsControl : UserControl
         {
             var item = new ListViewItem(recipient.Email);
             item.SubItems.Add(recipient.Name ?? "");
-            item.SubItems.Add(string.Join(", ", recipient.Industries));
+
+            // Resolve industry ObjectIds to names
+            var industryNames = ResolveIndustryNames(recipient.Industries);
+            item.SubItems.Add(string.Join(", ", industryNames));
             item.SubItems.Add(recipient.IsSent ? "Sent" : "Unsent");
             item.SubItems.Add(recipient.CreatedAt.ToLocalTime().ToString("d"));
             item.Tag = recipient;
             listViewRecipients.Items.Add(item);
         }
+    }
+
+    private List<string> ResolveIndustryNames(List<string> industryIds)
+    {
+        var names = new List<string>();
+        foreach (var id in industryIds)
+        {
+            var industry = _allIndustries.FirstOrDefault(i => i.Id == id);
+            names.Add(industry?.Name ?? id);
+        }
+        return names;
     }
 
     private void BtnAddRecipient_Click(object? sender, EventArgs e)

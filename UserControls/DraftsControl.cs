@@ -20,8 +20,7 @@ public partial class DraftsControl : UserControl
     private Button btnEdit;
     private Button btnDelete;
     private Button btnRefresh;
-    private Button btnOpenOutlook;
-    private Button btnSyncFromOutlook;
+    private Button btnPreview;
 
     private List<Draft> _appDrafts = new();
     private List<Draft> _outlookDrafts = new();
@@ -80,26 +79,22 @@ public partial class DraftsControl : UserControl
         btnCreateNew = CreateButton("Create New", 0);
         btnEdit = CreateButton("Edit", 140);
         btnDelete = CreateButton("Delete", 280);
-        btnRefresh = CreateButton("Refresh", 420);
-        btnOpenOutlook = CreateButton("Open in Outlook", 560);
-        btnSyncFromOutlook = CreateButton("Sync from Outlook", 740);
+        btnPreview = CreateButton("Preview", 420);
+        btnRefresh = CreateButton("Refresh", 560);
 
         btnCreateNew.Click += BtnCreateNew_Click;
         btnEdit.Click += BtnEdit_Click;
         btnDelete.Click += BtnDelete_Click;
+        btnPreview.Click += BtnPreview_Click;
         btnRefresh.Click += (s, e) => LoadDrafts();
-        btnOpenOutlook.Click += BtnOpenOutlook_Click;
-        btnSyncFromOutlook.Click += BtnSyncFromOutlook_Click;
 
-        // Disable Outlook features if Outlook is not available
+        // Disable Outlook tab if Outlook is not available
         if (!_outlookService.IsAvailable)
         {
-            btnOpenOutlook.Enabled = false;
-            btnSyncFromOutlook.Enabled = false;
             tabOutlookDrafts.Enabled = false;
         }
 
-        buttonPanel.Controls.AddRange(new Control[] { btnCreateNew, btnEdit, btnDelete, btnRefresh, btnOpenOutlook, btnSyncFromOutlook });
+        buttonPanel.Controls.AddRange(new Control[] { btnCreateNew, btnEdit, btnDelete, btnPreview, btnRefresh });
 
         this.Controls.Add(titleLabel);
         this.Controls.Add(tabControl);
@@ -165,6 +160,8 @@ public partial class DraftsControl : UserControl
 
     private void LoadOutlookDrafts()
     {
+        if (!_outlookService.IsAvailable) return;
+
         listViewOutlook.Items.Clear();
         _outlookDrafts = _outlookService.GetDraftsFromOutlook();
 
@@ -229,36 +226,21 @@ public partial class DraftsControl : UserControl
         }
     }
 
-    private void BtnOpenOutlook_Click(object? sender, EventArgs e)
+    private void BtnPreview_Click(object? sender, EventArgs e)
     {
-        if (listViewOutlook.SelectedItems.Count == 0)
+        ListView activeList = tabControl.SelectedTab == tabAppDrafts ? listViewApp : listViewOutlook;
+
+        if (activeList.SelectedItems.Count == 0)
         {
-            MessageBox.Show("Please select an Outlook draft to open.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Please select a draft to preview.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
-        var draft = listViewOutlook.SelectedItems[0].Tag as Draft;
-        if (draft != null && !string.IsNullOrEmpty(draft.OutlookEntryId))
+        var draft = activeList.SelectedItems[0].Tag as Draft;
+        if (draft != null)
         {
-            _outlookService.OpenDraftInOutlook(draft.OutlookEntryId);
+            var previewForm = new DraftPreviewForm(draft);
+            previewForm.ShowDialog();
         }
-    }
-
-    private async void BtnSyncFromOutlook_Click(object? sender, EventArgs e)
-    {
-        var outlookDrafts = _outlookService.GetDraftsFromOutlook();
-
-        foreach (var draft in outlookDrafts)
-        {
-            var existing = await _dbService.Drafts.Find(d => d.OutlookEntryId == draft.OutlookEntryId).FirstOrDefaultAsync();
-
-            if (existing == null)
-            {
-                await _dbService.Drafts.InsertOneAsync(draft);
-            }
-        }
-
-        MessageBox.Show($"Synced {outlookDrafts.Count} drafts from Outlook.", "Sync Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        LoadDrafts();
     }
 }

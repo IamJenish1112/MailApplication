@@ -15,6 +15,12 @@ public class EmailAccount
     [BsonElement("emailAddress")]
     public string EmailAddress { get; set; } = string.Empty;
 
+    [BsonElement("smtpAddress")]
+    public string SmtpAddress { get; set; } = string.Empty;
+
+    [BsonElement("accountType")]
+    public string AccountType { get; set; } = string.Empty;
+
     [BsonElement("isDefault")]
     public bool IsDefault { get; set; } = false;
 

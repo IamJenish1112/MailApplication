@@ -7,16 +7,12 @@ public class OutlookService
 {
     private object? _outlookApp;
     private object? _nameSpace;
-    private Type? _applicationClass;
-    private Type? _namespaceClass;
-    private Type? _mailItemClass;
     public bool IsAvailable { get; private set; }
 
     public OutlookService()
     {
         try
         {
-            // Try to create Outlook application using COM
             Type? outlookType = Type.GetTypeFromProgID("Outlook.Application");
             if (outlookType != null)
             {
@@ -35,6 +31,91 @@ public class OutlookService
             IsAvailable = false;
             Console.WriteLine($"Outlook not available: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Fetches all configured Outlook accounts with display name, SMTP address, and account type.
+    /// </summary>
+    public List<EmailAccount> GetOutlookAccounts()
+    {
+        var accounts = new List<EmailAccount>();
+        if (!IsAvailable || _nameSpace == null) return accounts;
+
+        try
+        {
+            var namespaceType = _nameSpace.GetType();
+            var accountsCollection = namespaceType.InvokeMember("Accounts",
+                System.Reflection.BindingFlags.GetProperty,
+                null, _nameSpace, null);
+
+            if (accountsCollection != null)
+            {
+                var accountsType = accountsCollection.GetType();
+                var count = (int)accountsType.InvokeMember("Count",
+                    System.Reflection.BindingFlags.GetProperty,
+                    null, accountsCollection, null);
+
+                for (int i = 1; i <= count; i++)
+                {
+                    try
+                    {
+                        var account = accountsType.InvokeMember("Item",
+                            System.Reflection.BindingFlags.InvokeMethod,
+                            null, accountsCollection, new object[] { i });
+
+                        if (account != null)
+                        {
+                            var accountType = account.GetType();
+                            var displayName = accountType.InvokeMember("DisplayName",
+                                System.Reflection.BindingFlags.GetProperty,
+                                null, account, null) as string ?? "";
+                            var smtpAddress = accountType.InvokeMember("SmtpAddress",
+                                System.Reflection.BindingFlags.GetProperty,
+                                null, account, null) as string ?? "";
+                            var acctTypeEnum = accountType.InvokeMember("AccountType",
+                                System.Reflection.BindingFlags.GetProperty,
+                                null, account, null);
+
+                            string acctTypeName = acctTypeEnum?.ToString() ?? "Unknown";
+                            // Map OlAccountType enum values
+                            if (int.TryParse(acctTypeName, out int acctTypeVal))
+                            {
+                                acctTypeName = acctTypeVal switch
+                                {
+                                    0 => "Exchange",
+                                    1 => "IMAP",
+                                    2 => "POP3",
+                                    3 => "HTTP",
+                                    4 => "EAS (ActiveSync)",
+                                    5 => "Other",
+                                    _ => $"Type {acctTypeVal}"
+                                };
+                            }
+
+                            accounts.Add(new EmailAccount
+                            {
+                                AccountName = displayName,
+                                EmailAddress = smtpAddress,
+                                SmtpAddress = smtpAddress,
+                                AccountType = acctTypeName,
+                                IsDefault = i == 1 // First account is typically default
+                            });
+
+                            Marshal.ReleaseComObject(account);
+                        }
+                    }
+                    catch { /* Skip invalid accounts */ }
+                }
+
+                Marshal.ReleaseComObject(accountsCollection);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error fetching Outlook accounts: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        return accounts;
     }
 
     public List<Draft> GetDraftsFromOutlook()
@@ -123,30 +204,58 @@ public class OutlookService
         return drafts;
     }
 
-    public void OpenDraftInOutlook(string entryId)
+    /// <summary>
+    /// Opens the Outlook compose window for designing a template. Returns the HTML body when user saves and closes.
+    /// </summary>
+    public (string subject, string htmlBody)? OpenOutlookComposer(string? initialSubject = null, string? initialHtmlBody = null)
     {
-        if (!IsAvailable || _nameSpace == null || string.IsNullOrEmpty(entryId)) return;
+        if (!IsAvailable || _outlookApp == null) return null;
 
         try
         {
-            var namespaceType = _nameSpace.GetType();
-            var mailItem = namespaceType.InvokeMember("GetItemFromID",
+            var appType = _outlookApp.GetType();
+            var mailItem = appType.InvokeMember("CreateItem",
                 System.Reflection.BindingFlags.InvokeMethod,
-                null, _nameSpace, new object[] { entryId });
+                null, _outlookApp, new object[] { 0 }); // 0 = olMailItem
 
             if (mailItem != null)
             {
                 var itemType = mailItem.GetType();
-                itemType.InvokeMember("Display",
-                    System.Reflection.BindingFlags.InvokeMethod,
-                    null, mailItem, new object[] { false });
+
+                if (!string.IsNullOrEmpty(initialSubject))
+                    itemType.InvokeMember("Subject", System.Reflection.BindingFlags.SetProperty, null, mailItem, new object[] { initialSubject });
+
+                if (!string.IsNullOrEmpty(initialHtmlBody))
+                    itemType.InvokeMember("HTMLBody", System.Reflection.BindingFlags.SetProperty, null, mailItem, new object[] { initialHtmlBody });
+
+                // Display the compose window modally (true = modal)
+                itemType.InvokeMember("Display", System.Reflection.BindingFlags.InvokeMethod, null, mailItem, new object[] { true });
+
+                // After the window is closed, capture the content
+                var subject = itemType.InvokeMember("Subject",
+                    System.Reflection.BindingFlags.GetProperty,
+                    null, mailItem, null) as string ?? "";
+                var htmlBody = itemType.InvokeMember("HTMLBody",
+                    System.Reflection.BindingFlags.GetProperty,
+                    null, mailItem, null) as string ?? "";
+
+                // Save it as a draft so we don't lose it
+                itemType.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, null, mailItem, null);
+
+                // Delete the temporary draft from Outlook
+                itemType.InvokeMember("Delete", System.Reflection.BindingFlags.InvokeMethod, null, mailItem, null);
+
                 Marshal.ReleaseComObject(mailItem);
+
+                return (subject, htmlBody);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error opening draft: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show($"Error opening Outlook composer: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+
+        return null;
     }
 
     public List<object> GetInboxItems()
@@ -251,7 +360,10 @@ public class OutlookService
         return items;
     }
 
-    public void SendEmail(string bcc, string subject, string body, bool isHtml)
+    /// <summary>
+    /// Sends email using BCC only (no TO field). Uses specified account SMTP address if provided.
+    /// </summary>
+    public void SendEmail(string bcc, string subject, string body, bool isHtml, string? senderSmtpAddress = null)
     {
         if (!IsAvailable || _outlookApp == null) return;
 
@@ -265,16 +377,25 @@ public class OutlookService
             if (mailItem != null)
             {
                 var itemType = mailItem.GetType();
-                // itemType.InvokeMember("To", System.Reflection.BindingFlags.SetProperty, null, mailItem, new object[] { "" });
+
+                // Set subject
                 itemType.InvokeMember("Subject", System.Reflection.BindingFlags.SetProperty, null, mailItem, new object[] { subject });
 
+                // Set body (HTML or plain text)
                 if (isHtml)
                     itemType.InvokeMember("HTMLBody", System.Reflection.BindingFlags.SetProperty, null, mailItem, new object[] { body });
                 else
                     itemType.InvokeMember("Body", System.Reflection.BindingFlags.SetProperty, null, mailItem, new object[] { body });
 
+                // BCC only - no TO field
                 if (!string.IsNullOrEmpty(bcc))
                     itemType.InvokeMember("BCC", System.Reflection.BindingFlags.SetProperty, null, mailItem, new object[] { bcc });
+
+                // Set sender account if specified
+                if (!string.IsNullOrEmpty(senderSmtpAddress))
+                {
+                    SetSendUsingAccount(mailItem, senderSmtpAddress);
+                }
 
                 itemType.InvokeMember("Send", System.Reflection.BindingFlags.InvokeMethod, null, mailItem, null);
                 Marshal.ReleaseComObject(mailItem);
@@ -283,6 +404,62 @@ public class OutlookService
         catch (Exception ex)
         {
             throw new Exception($"Failed to send email: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Sets the SendUsingAccount property on a mail item to use a specific Outlook account.
+    /// </summary>
+    private void SetSendUsingAccount(object mailItem, string smtpAddress)
+    {
+        if (_nameSpace == null) return;
+
+        try
+        {
+            var namespaceType = _nameSpace.GetType();
+            var accountsCollection = namespaceType.InvokeMember("Accounts",
+                System.Reflection.BindingFlags.GetProperty,
+                null, _nameSpace, null);
+
+            if (accountsCollection != null)
+            {
+                var accountsType = accountsCollection.GetType();
+                var count = (int)accountsType.InvokeMember("Count",
+                    System.Reflection.BindingFlags.GetProperty,
+                    null, accountsCollection, null);
+
+                for (int i = 1; i <= count; i++)
+                {
+                    var account = accountsType.InvokeMember("Item",
+                        System.Reflection.BindingFlags.InvokeMethod,
+                        null, accountsCollection, new object[] { i });
+
+                    if (account != null)
+                    {
+                        var accountType = account.GetType();
+                        var acctSmtp = accountType.InvokeMember("SmtpAddress",
+                            System.Reflection.BindingFlags.GetProperty,
+                            null, account, null) as string ?? "";
+
+                        if (acctSmtp.Equals(smtpAddress, StringComparison.OrdinalIgnoreCase))
+                        {
+                            var itemType = mailItem.GetType();
+                            itemType.InvokeMember("SendUsingAccount",
+                                System.Reflection.BindingFlags.SetProperty,
+                                null, mailItem, new object[] { account });
+                            break;
+                        }
+
+                        Marshal.ReleaseComObject(account);
+                    }
+                }
+
+                Marshal.ReleaseComObject(accountsCollection);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not set sender account: {ex.Message}");
         }
     }
 

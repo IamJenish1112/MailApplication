@@ -16,6 +16,7 @@ public class Recipient
     public string? Name { get; set; }
 
     [BsonElement("industries")]
+    [BsonRepresentation(BsonType.ObjectId)]
     public List<string> Industries { get; set; } = new();
 
     [BsonElement("isSent")]

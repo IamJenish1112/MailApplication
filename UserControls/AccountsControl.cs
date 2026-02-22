@@ -8,18 +8,19 @@ namespace MailApplication.UserControls;
 public partial class AccountsControl : UserControl
 {
     private readonly MongoDbService _dbService;
+    private readonly OutlookService _outlookService;
     private ListView listViewAccounts;
-    private Button btnAddAccount;
-    private Button btnEditAccount;
-    private Button btnDeleteAccount;
+    private Button btnFetchFromOutlook;
     private Button btnSetDefault;
     private Button btnRefresh;
+    private Button btnDeleteAccount;
 
     private List<EmailAccount> _accounts = new();
 
-    public AccountsControl(MongoDbService dbService)
+    public AccountsControl(MongoDbService dbService, OutlookService outlookService)
     {
         _dbService = dbService;
+        _outlookService = outlookService;
         InitializeComponent();
         SetupUI();
         LoadAccounts();
@@ -41,9 +42,9 @@ public partial class AccountsControl : UserControl
 
         var infoLabel = new Label
         {
-            Text = "Manage email accounts for sending bulk emails. The default account will be used for sending.",
+            Text = "Manage email accounts for sending bulk emails. Fetch accounts from Outlook or set a default sending account.",
             Location = new Point(0, 40),
-            Size = new Size(800, 25),
+            Size = new Size(900, 25),
             Font = new Font("Segoe UI", 10),
             ForeColor = Color.FromArgb(108, 117, 125)
         };
@@ -58,9 +59,10 @@ public partial class AccountsControl : UserControl
             Font = new Font("Segoe UI", 10)
         };
 
-        listViewAccounts.Columns.Add("Account Name", 300);
-        listViewAccounts.Columns.Add("Email Address", 400);
-        listViewAccounts.Columns.Add("Default", 100);
+        listViewAccounts.Columns.Add("Account Display Name", 250);
+        listViewAccounts.Columns.Add("SMTP Address", 300);
+        listViewAccounts.Columns.Add("Account Type", 150);
+        listViewAccounts.Columns.Add("Default", 80);
         listViewAccounts.Columns.Add("Created", 180);
 
         var buttonPanel = new Panel
@@ -70,26 +72,37 @@ public partial class AccountsControl : UserControl
             BackColor = Color.White
         };
 
-        btnAddAccount = CreateButton("Add Account", 0);
-        btnEditAccount = CreateButton("Edit", 150);
-        btnDeleteAccount = CreateButton("Delete", 270);
-        btnSetDefault = CreateButton("Set as Default", 390);
-        btnRefresh = CreateButton("Refresh", 550);
+        btnFetchFromOutlook = new Button
+        {
+            Text = "⟳ Fetch from Outlook",
+            Location = new Point(0, 5),
+            Size = new Size(190, 40),
+            BackColor = Color.FromArgb(0, 120, 212),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            Cursor = Cursors.Hand,
+            Enabled = _outlookService.IsAvailable
+        };
+        btnFetchFromOutlook.FlatAppearance.BorderSize = 0;
 
-        btnAddAccount.Click += BtnAddAccount_Click;
-        btnEditAccount.Click += BtnEditAccount_Click;
-        btnDeleteAccount.Click += BtnDeleteAccount_Click;
+        btnSetDefault = CreateButton("Set as Default", 200);
+        btnDeleteAccount = CreateButton("Delete", 350);
+        btnRefresh = CreateButton("Refresh", 480);
+
+        btnFetchFromOutlook.Click += BtnFetchFromOutlook_Click;
         btnSetDefault.Click += BtnSetDefault_Click;
+        btnDeleteAccount.Click += BtnDeleteAccount_Click;
         btnRefresh.Click += (s, e) => LoadAccounts();
 
-        buttonPanel.Controls.AddRange(new Control[] { btnAddAccount, btnEditAccount, btnDeleteAccount, btnSetDefault, btnRefresh });
+        buttonPanel.Controls.AddRange(new Control[] { btnFetchFromOutlook, btnSetDefault, btnDeleteAccount, btnRefresh });
 
         this.Controls.AddRange(new Control[] { titleLabel, infoLabel, listViewAccounts, buttonPanel });
     }
 
     private Button CreateButton(string text, int left)
     {
-        return new Button
+        var btn = new Button
         {
             Text = text,
             Location = new Point(left, 5),
@@ -100,6 +113,8 @@ public partial class AccountsControl : UserControl
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             Cursor = Cursors.Hand
         };
+        btn.FlatAppearance.BorderSize = 0;
+        return btn;
     }
 
     private async void LoadAccounts()
@@ -110,39 +125,120 @@ public partial class AccountsControl : UserControl
         foreach (var account in _accounts)
         {
             var item = new ListViewItem(account.AccountName);
-            item.SubItems.Add(account.EmailAddress);
-            item.SubItems.Add(account.IsDefault ? "Yes" : "No");
+            item.SubItems.Add(account.SmtpAddress);
+            item.SubItems.Add(account.AccountType);
+            item.SubItems.Add(account.IsDefault ? "✔ Yes" : "No");
             item.SubItems.Add(account.CreatedAt.ToLocalTime().ToString("g"));
             item.Tag = account;
+
+            if (account.IsDefault)
+            {
+                item.BackColor = Color.FromArgb(232, 245, 233);
+            }
+
             listViewAccounts.Items.Add(item);
         }
     }
 
-    private void BtnAddAccount_Click(object? sender, EventArgs e)
+    private async void BtnFetchFromOutlook_Click(object? sender, EventArgs e)
     {
-        var editorForm = new AccountEditorForm(_dbService, null);
-        if (editorForm.ShowDialog() == DialogResult.OK)
+        if (!_outlookService.IsAvailable)
         {
+            MessageBox.Show("Outlook is not available.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        try
+        {
+            btnFetchFromOutlook.Enabled = false;
+            btnFetchFromOutlook.Text = "Fetching...";
+
+            var outlookAccounts = _outlookService.GetOutlookAccounts();
+
+            if (outlookAccounts.Count == 0)
+            {
+                MessageBox.Show("No Outlook accounts found.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            int newCount = 0;
+            int updatedCount = 0;
+
+            foreach (var account in outlookAccounts)
+            {
+                // Check if account already exists by SMTP address
+                var existing = await _dbService.EmailAccounts
+                    .Find(a => a.SmtpAddress == account.SmtpAddress)
+                    .FirstOrDefaultAsync();
+
+                if (existing == null)
+                {
+                    var newAccount = new EmailAccount
+                    {
+                        AccountName = account.AccountName,
+                        EmailAddress = account.EmailAddress,
+                        SmtpAddress = account.SmtpAddress,
+                        AccountType = account.AccountType,
+                        IsDefault = account.IsDefault && newCount == 0,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _dbService.EmailAccounts.InsertOneAsync(newAccount);
+                    newCount++;
+                }
+                else
+                {
+                    // Update existing account info
+                    var filter = Builders<EmailAccount>.Filter.Eq(a => a.Id, existing.Id);
+                    var update = Builders<EmailAccount>.Update
+                        .Set(a => a.AccountName, account.AccountName)
+                        .Set(a => a.AccountType, account.AccountType);
+                    await _dbService.EmailAccounts.UpdateOneAsync(filter, update);
+                    updatedCount++;
+                }
+            }
+
+            MessageBox.Show(
+                $"Outlook accounts fetched successfully!\n\nNew accounts: {newCount}\nUpdated accounts: {updatedCount}",
+                "Fetch Complete",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+
             LoadAccounts();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error fetching accounts: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnFetchFromOutlook.Enabled = _outlookService.IsAvailable;
+            btnFetchFromOutlook.Text = "⟳ Fetch from Outlook";
         }
     }
 
-    private void BtnEditAccount_Click(object? sender, EventArgs e)
+    private async void BtnSetDefault_Click(object? sender, EventArgs e)
     {
         if (listViewAccounts.SelectedItems.Count == 0)
         {
-            MessageBox.Show("Please select an account to edit.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Please select an account to set as default.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
         var account = listViewAccounts.SelectedItems[0].Tag as EmailAccount;
-        if (account != null)
+        if (account != null && !string.IsNullOrEmpty(account.Id))
         {
-            var editorForm = new AccountEditorForm(_dbService, account);
-            if (editorForm.ShowDialog() == DialogResult.OK)
-            {
-                LoadAccounts();
-            }
+            // Clear all defaults
+            await _dbService.EmailAccounts.UpdateManyAsync(
+                _ => true,
+                Builders<EmailAccount>.Update.Set(a => a.IsDefault, false)
+            );
+
+            // Set selected as default
+            var filter = Builders<EmailAccount>.Filter.Eq(a => a.Id, account.Id);
+            var update = Builders<EmailAccount>.Update.Set(a => a.IsDefault, true);
+            await _dbService.EmailAccounts.UpdateOneAsync(filter, update);
+
+            LoadAccounts();
         }
     }
 
@@ -163,30 +259,6 @@ public partial class AccountsControl : UserControl
                 await _dbService.EmailAccounts.DeleteOneAsync(a => a.Id == account.Id);
                 LoadAccounts();
             }
-        }
-    }
-
-    private async void BtnSetDefault_Click(object? sender, EventArgs e)
-    {
-        if (listViewAccounts.SelectedItems.Count == 0)
-        {
-            MessageBox.Show("Please select an account to set as default.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            return;
-        }
-
-        var account = listViewAccounts.SelectedItems[0].Tag as EmailAccount;
-        if (account != null && !string.IsNullOrEmpty(account.Id))
-        {
-            await _dbService.EmailAccounts.UpdateManyAsync(
-                _ => true,
-                Builders<EmailAccount>.Update.Set(a => a.IsDefault, false)
-            );
-
-            var filter = Builders<EmailAccount>.Filter.Eq(a => a.Id, account.Id);
-            var update = Builders<EmailAccount>.Update.Set(a => a.IsDefault, true);
-            await _dbService.EmailAccounts.UpdateOneAsync(filter, update);
-
-            LoadAccounts();
         }
     }
 }

@@ -205,7 +205,7 @@ public partial class MainForm : Form
 
     private void LoadAccountsTab()
     {
-        var accountsControl = new AccountsControl(_dbService);
+        var accountsControl = new AccountsControl(_dbService, _outlookService);
         LoadUserControl(accountsControl, btnAccounts);
     }
 
