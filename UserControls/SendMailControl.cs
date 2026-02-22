@@ -9,12 +9,13 @@ public partial class SendMailControl : UserControl
 {
     private readonly MongoDbService _dbService;
     private readonly OutlookService _outlookService;
+    private readonly OutlookAccountService _accountService;
+    private readonly BulkMailSenderService _bulkSenderService;
     private readonly EmailSendingService _emailService;
 
     private ComboBox cmbIndustry;
     private ComboBox cmbTemplateSource;
     private ComboBox cmbDraft;
-    private ComboBox cmbSenderAccount;
     private ListView listViewRecipients;
     private CheckBox chkSelectAll;
     private TextBox txtBatchSize;
@@ -27,6 +28,7 @@ public partial class SendMailControl : UserControl
     private Button btnStopSending;
     private ProgressBar progressBar;
     private Label lblProgress;
+    private Label lblAccountInfo;
     private RichTextBox txtLog;
 
     private List<Recipient> _allRecipients = new();
@@ -37,11 +39,15 @@ public partial class SendMailControl : UserControl
     private List<EmailAccount> _outlookAccounts = new();
     private CancellationTokenSource? _cancellationTokenSource;
 
-    public SendMailControl(MongoDbService dbService, OutlookService outlookService, EmailSendingService emailService)
+    public SendMailControl(MongoDbService dbService, OutlookService outlookService,
+        EmailSendingService emailService, OutlookAccountService accountService,
+        BulkMailSenderService bulkSenderService)
     {
         _dbService = dbService;
         _outlookService = outlookService;
         _emailService = emailService;
+        _accountService = accountService;
+        _bulkSenderService = bulkSenderService;
         InitializeComponent();
         SetupUI();
         LoadData();
@@ -98,7 +104,7 @@ public partial class SendMailControl : UserControl
         cmbTemplateSource.Items.AddRange(new object[] { "Application Templates", "Outlook Drafts" });
         cmbTemplateSource.SelectedIndex = 0;
 
-        // Row 2: Draft selection + Sender Account
+        // Row 2: Draft selection + Preview
         var lblDraft = new Label
         {
             Text = "Select Template:",
@@ -128,27 +134,21 @@ public partial class SendMailControl : UserControl
         };
         btnPreviewDraft.FlatAppearance.BorderSize = 0;
 
-        var lblSender = new Label
+        // Row 3: Account info label (replaces Send As dropdown)
+        lblAccountInfo = new Label
         {
-            Text = "Send As:",
-            Location = new Point(560, 95),
-            Size = new Size(80, 25),
-            Font = new Font("Segoe UI", 10, FontStyle.Bold)
-        };
-
-        cmbSenderAccount = new ComboBox
-        {
-            Location = new Point(650, 95),
-            Size = new Size(320, 30),
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Font = new Font("Segoe UI", 10)
+            Text = "🔄 Accounts: Loading...",
+            Location = new Point(0, 135),
+            Size = new Size(980, 25),
+            Font = new Font("Segoe UI", 9, FontStyle.Italic),
+            ForeColor = Color.FromArgb(25, 135, 84)
         };
 
         // Select All checkbox
         chkSelectAll = new CheckBox
         {
             Text = "Select All Recipients",
-            Location = new Point(0, 140),
+            Location = new Point(0, 165),
             Size = new Size(200, 25),
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             ForeColor = Color.FromArgb(33, 37, 41)
@@ -157,8 +157,8 @@ public partial class SendMailControl : UserControl
         // Recipients ListView
         listViewRecipients = new ListView
         {
-            Location = new Point(0, 170),
-            Size = new Size(980, 270),
+            Location = new Point(0, 195),
+            Size = new Size(980, 260),
             View = View.Details,
             FullRowSelect = true,
             GridLines = true,
@@ -175,7 +175,7 @@ public partial class SendMailControl : UserControl
         // Button panel
         var buttonPanel = new Panel
         {
-            Location = new Point(0, 450),
+            Location = new Point(0, 465),
             Size = new Size(980, 50),
             BackColor = Color.White
         };
@@ -190,14 +190,14 @@ public partial class SendMailControl : UserControl
         var lblBatchSize = new Label
         {
             Text = "Batch Size (BCC):",
-            Location = new Point(0, 515),
+            Location = new Point(0, 530),
             Size = new Size(140, 25),
             Font = new Font("Segoe UI", 10, FontStyle.Bold)
         };
 
         txtBatchSize = new TextBox
         {
-            Location = new Point(150, 515),
+            Location = new Point(150, 530),
             Size = new Size(80, 30),
             Text = "50",
             Font = new Font("Segoe UI", 10)
@@ -206,14 +206,14 @@ public partial class SendMailControl : UserControl
         var lblDelay = new Label
         {
             Text = "Delay (seconds):",
-            Location = new Point(260, 515),
+            Location = new Point(260, 530),
             Size = new Size(130, 25),
             Font = new Font("Segoe UI", 10, FontStyle.Bold)
         };
 
         txtDelay = new TextBox
         {
-            Location = new Point(400, 515),
+            Location = new Point(400, 530),
             Size = new Size(80, 30),
             Text = "60",
             Font = new Font("Segoe UI", 10)
@@ -222,7 +222,7 @@ public partial class SendMailControl : UserControl
         btnStartSending = new Button
         {
             Text = "▶ Start Sending",
-            Location = new Point(520, 510),
+            Location = new Point(520, 525),
             Size = new Size(150, 40),
             BackColor = Color.FromArgb(40, 167, 69),
             ForeColor = Color.White,
@@ -235,7 +235,7 @@ public partial class SendMailControl : UserControl
         btnStopSending = new Button
         {
             Text = "⏹ Stop",
-            Location = new Point(680, 510),
+            Location = new Point(680, 525),
             Size = new Size(100, 40),
             BackColor = Color.FromArgb(220, 53, 69),
             ForeColor = Color.White,
@@ -248,7 +248,7 @@ public partial class SendMailControl : UserControl
 
         progressBar = new ProgressBar
         {
-            Location = new Point(0, 565),
+            Location = new Point(0, 580),
             Size = new Size(980, 25),
             Style = ProgressBarStyle.Continuous
         };
@@ -256,7 +256,7 @@ public partial class SendMailControl : UserControl
         lblProgress = new Label
         {
             Text = "Ready to send",
-            Location = new Point(0, 597),
+            Location = new Point(0, 612),
             Size = new Size(980, 25),
             Font = new Font("Segoe UI", 10),
             ForeColor = Color.FromArgb(108, 117, 125)
@@ -264,7 +264,7 @@ public partial class SendMailControl : UserControl
 
         txtLog = new RichTextBox
         {
-            Location = new Point(0, 625),
+            Location = new Point(0, 640),
             Size = new Size(980, 140),
             ReadOnly = true,
             Font = new Font("Consolas", 9),
@@ -276,7 +276,7 @@ public partial class SendMailControl : UserControl
             lblIndustry, cmbIndustry,
             lblTemplateSource, cmbTemplateSource,
             lblDraft, cmbDraft, btnPreviewDraft,
-            lblSender, cmbSenderAccount,
+            lblAccountInfo,
             chkSelectAll,
             listViewRecipients, buttonPanel,
             lblBatchSize, txtBatchSize, lblDelay, txtDelay,
@@ -314,22 +314,19 @@ public partial class SendMailControl : UserControl
         btnStartSending.Click += BtnStartSending_Click;
         btnStopSending.Click += BtnStopSending_Click;
 
-        _emailService.BatchProgress += EmailService_BatchProgress;
-        _emailService.StatusUpdate += EmailService_StatusUpdate;
+        _bulkSenderService.BatchProgress += BulkSenderService_BatchProgress;
+        _bulkSenderService.StatusUpdate += BulkSenderService_StatusUpdate;
     }
 
     private async void LoadData()
     {
         await LoadIndustries();
-        await LoadSettings(); // Auto-load batch size & delay from Settings
+        await LoadSettings();
         await LoadDrafts();
         await LoadRecipients();
-        LoadSenderAccounts();
+        LoadAccountInfo();
     }
 
-    /// <summary>
-    /// Auto-loads batch size and delay from Settings collection in MongoDB.
-    /// </summary>
     private async Task LoadSettings()
     {
         try
@@ -379,11 +376,11 @@ public partial class SendMailControl : UserControl
     {
         cmbDraft.Items.Clear();
 
-        if (cmbTemplateSource.SelectedIndex == 0) // Application Templates
+        if (cmbTemplateSource.SelectedIndex == 0)
         {
             _currentDrafts = _appDrafts;
         }
-        else // Outlook Drafts
+        else
         {
             _currentDrafts = _outlookDrafts;
         }
@@ -397,30 +394,28 @@ public partial class SendMailControl : UserControl
             cmbDraft.SelectedIndex = 0;
     }
 
-    private void LoadSenderAccounts()
+    /// <summary>
+    /// Shows a label with all configured accounts. No dropdown — accounts are auto-rotated.
+    /// </summary>
+    private void LoadAccountInfo()
     {
-        cmbSenderAccount.Items.Clear();
+        _outlookAccounts = _accountService.GetAllAccounts();
 
-        if (_outlookService.IsAvailable)
+        if (_outlookAccounts.Count == 0)
         {
-            _outlookAccounts = _outlookService.GetOutlookAccounts();
-
-            foreach (var account in _outlookAccounts)
-            {
-                cmbSenderAccount.Items.Add($"{account.AccountName} ({account.SmtpAddress})");
-            }
+            lblAccountInfo.Text = "⚠ No Outlook accounts found. Please configure accounts in Outlook.";
+            lblAccountInfo.ForeColor = Color.FromArgb(220, 53, 69);
         }
-
-        if (cmbSenderAccount.Items.Count > 0)
+        else if (_outlookAccounts.Count == 1)
         {
-            // Select the default account
-            var defaultIndex = _outlookAccounts.FindIndex(a => a.IsDefault);
-            cmbSenderAccount.SelectedIndex = defaultIndex >= 0 ? defaultIndex : 0;
+            lblAccountInfo.Text = $"📧 Sending via: {_outlookAccounts[0].AccountName} ({_outlookAccounts[0].SmtpAddress})";
+            lblAccountInfo.ForeColor = Color.FromArgb(13, 110, 253);
         }
         else
         {
-            cmbSenderAccount.Items.Add("No accounts available");
-            cmbSenderAccount.SelectedIndex = 0;
+            var names = string.Join("  →  ", _outlookAccounts.Select(a => a.SmtpAddress));
+            lblAccountInfo.Text = $"🔄 Auto-Rotate ({_outlookAccounts.Count} accounts): {names}";
+            lblAccountInfo.ForeColor = Color.FromArgb(25, 135, 84);
         }
     }
 
@@ -444,7 +439,6 @@ public partial class SendMailControl : UserControl
         }
         else
         {
-            // Find industry by name to get its ObjectId
             var industry = _allIndustries.FirstOrDefault(i => i.Name == selectedIndustry);
             if (industry != null && !string.IsNullOrEmpty(industry.Id))
             {
@@ -461,7 +455,6 @@ public partial class SendMailControl : UserControl
             var item = new ListViewItem(recipient.Email);
             item.SubItems.Add(recipient.Name ?? "");
 
-            // Resolve industry IDs to names
             var industryNames = ResolveIndustryNames(recipient.Industries);
             item.SubItems.Add(string.Join(", ", industryNames));
             item.SubItems.Add(recipient.IsSent ? "Sent" : "Unsent");
@@ -474,7 +467,6 @@ public partial class SendMailControl : UserControl
             listViewRecipients.Items.Add(item);
         }
 
-        // Update Select All checkbox state
         UpdateSelectAllState();
     }
 
@@ -562,6 +554,7 @@ public partial class SendMailControl : UserControl
 
     private async void BtnStartSending_Click(object? sender, EventArgs e)
     {
+        // --- Validation ---
         if (cmbDraft.SelectedIndex < 0 || cmbDraft.SelectedIndex >= _currentDrafts.Count)
         {
             MessageBox.Show("Please select a draft template.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -592,15 +585,39 @@ public partial class SendMailControl : UserControl
             return;
         }
 
-        var draft = _currentDrafts[cmbDraft.SelectedIndex];
-
-        // Get selected sender account SMTP address
-        string? senderSmtp = null;
-        if (cmbSenderAccount.SelectedIndex >= 0 && cmbSenderAccount.SelectedIndex < _outlookAccounts.Count)
+        if (_outlookAccounts.Count == 0)
         {
-            senderSmtp = _outlookAccounts[cmbSenderAccount.SelectedIndex].SmtpAddress;
+            MessageBox.Show("No Outlook accounts found. Please configure accounts in Outlook first.",
+                "No Accounts", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
         }
 
+        var draft = _currentDrafts[cmbDraft.SelectedIndex];
+
+        // --- Build BulkSendRequest ---
+        // Automatically use Round Robin when multiple accounts exist, Single when only 1
+        var strategy = _outlookAccounts.Count >= 2
+            ? AccountRotationStrategy.RoundRobin
+            : AccountRotationStrategy.SingleAccount;
+
+        var request = new BulkSendRequest
+        {
+            Recipients = checkedRecipients,
+            Draft = draft,
+            BatchSize = batchSize,
+            DelaySeconds = delay,
+            RotationStrategy = strategy,
+            // Use ALL accounts for rotation — no manual selection needed
+            RotationAccountSmtps = _outlookAccounts.Select(a => a.SmtpAddress).ToList()
+        };
+
+        // For single account, set the single account SMTP
+        if (strategy == AccountRotationStrategy.SingleAccount)
+        {
+            request.SingleAccountSmtp = _outlookAccounts[0].SmtpAddress;
+        }
+
+        // --- UI State: Sending ---
         btnStartSending.Enabled = false;
         btnStopSending.Enabled = true;
         progressBar.Value = 0;
@@ -610,13 +627,27 @@ public partial class SendMailControl : UserControl
 
         try
         {
-            await _emailService.SendBulkEmailsAsync(
-                checkedRecipients, draft, batchSize, delay,
-                senderSmtp, _cancellationTokenSource.Token);
+            LogMessage($"Mode: {(strategy == AccountRotationStrategy.RoundRobin ? "Auto-Rotate" : "Single Account")}  |  Recipients: {checkedRecipients.Count}  |  Batch Size: {batchSize}");
+
+            if (strategy == AccountRotationStrategy.RoundRobin)
+            {
+                LogMessage($"Accounts in rotation: {string.Join(", ", _outlookAccounts.Select(a => a.SmtpAddress))}");
+            }
+
+            var summary = await _bulkSenderService.SendBulkEmailsAsync(request, _cancellationTokenSource.Token);
+
+            // Log summary
+            LogMessage("════════════════════════════════════════");
+            LogMessage($"✅ COMPLETE  |  Success: {summary.SuccessCount}  |  Failed: {summary.FailureCount}  |  Duration: {summary.Duration:mm\\:ss}");
+            foreach (var kvp in summary.EmailsPerAccount)
+            {
+                LogMessage($"   📧 {kvp.Key}: {kvp.Value} emails");
+            }
+            LogMessage("════════════════════════════════════════");
         }
         catch (Exception ex)
         {
-            LogMessage($"Error: {ex.Message}");
+            LogMessage($"❌ Error: {ex.Message}");
         }
         finally
         {
@@ -630,26 +661,27 @@ public partial class SendMailControl : UserControl
     {
         _cancellationTokenSource?.Cancel();
         btnStopSending.Enabled = false;
+        LogMessage("⚠ Cancellation requested. Waiting for current batch to finish...");
     }
 
-    private void EmailService_BatchProgress(object? sender, BatchProgressEventArgs e)
+    private void BulkSenderService_BatchProgress(object? sender, BulkBatchProgressEventArgs e)
     {
         if (InvokeRequired)
         {
-            Invoke(() => EmailService_BatchProgress(sender, e));
+            Invoke(() => BulkSenderService_BatchProgress(sender, e));
             return;
         }
 
         progressBar.Maximum = e.TotalBatches;
-        progressBar.Value = e.CurrentBatch;
-        lblProgress.Text = $"Batch {e.CurrentBatch}/{e.TotalBatches} - {e.EmailsSent} emails sent";
+        progressBar.Value = Math.Min(e.CurrentBatch, e.TotalBatches);
+        lblProgress.Text = $"Batch {e.CurrentBatch}/{e.TotalBatches} — {e.EmailsSent} of {e.TotalEmails} emails sent";
     }
 
-    private void EmailService_StatusUpdate(object? sender, string message)
+    private void BulkSenderService_StatusUpdate(object? sender, string message)
     {
         if (InvokeRequired)
         {
-            Invoke(() => EmailService_StatusUpdate(sender, message));
+            Invoke(() => BulkSenderService_StatusUpdate(sender, message));
             return;
         }
 

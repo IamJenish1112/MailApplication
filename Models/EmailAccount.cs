@@ -24,6 +24,18 @@ public class EmailAccount
     [BsonElement("isDefault")]
     public bool IsDefault { get; set; } = false;
 
+    [BsonElement("isEnabled")]
+    public bool IsEnabled { get; set; } = true;
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Transient property — tracks how many emails were sent via this account in the current session.
+    /// Not persisted to MongoDB.
+    /// </summary>
+    [BsonIgnore]
+    public int SentCount { get; set; } = 0;
+
+    public override string ToString() => $"{AccountName} ({SmtpAddress})";
 }

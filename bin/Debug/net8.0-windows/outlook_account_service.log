@@ -1,0 +1,39 @@
+[2026-02-22 07:03:26.266] [OutlookAccountService] Created new Outlook instance.
+[2026-02-22 07:03:31.215] [OutlookAccountService] Found 2 Outlook account(s).
+[2026-02-22 07:03:31.243] [OutlookAccountService]   Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
+[2026-02-22 07:03:31.259] [OutlookAccountService]   Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-22 07:06:06.252] [OutlookAccountService] Found 2 Outlook account(s).
+[2026-02-22 07:06:06.263] [OutlookAccountService]   Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
+[2026-02-22 07:06:06.274] [OutlookAccountService]   Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-22 07:07:04.783] [OutlookAccountService] ERROR: Failed to fetch accounts: The RPC server is unavailable. (0x800706BA)
+[2026-02-22 07:07:36.908] [OutlookAccountService] OutlookAccountService disposed. All COM objects released.
+[2026-02-22 07:07:52.284] [OutlookAccountService] Created new Outlook instance.
+[2026-02-22 07:07:57.902] [OutlookAccountService] Found 2 Outlook account(s).
+[2026-02-22 07:07:57.923] [OutlookAccountService]   Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
+[2026-02-22 07:07:57.939] [OutlookAccountService]   Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-22 07:08:12.689] [OutlookAccountService] Found 2 Outlook account(s).
+[2026-02-22 07:08:12.707] [OutlookAccountService]   Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
+[2026-02-22 07:08:12.722] [OutlookAccountService]   Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-22 07:08:15.000] [OutlookAccountService] Found 2 Outlook account(s).
+[2026-02-22 07:08:15.009] [OutlookAccountService]   Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
+[2026-02-22 07:08:15.022] [OutlookAccountService]   Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-22 07:08:15.251] [OutlookAccountService] Email sent via sorathiyajenish1112@gmail.com to 1 recipient(s).
+[2026-02-22 07:08:20.369] [OutlookAccountService] Email sent via sorathiyajenish1112@gmail.com to 1 recipient(s).
+[2026-02-22 07:08:25.488] [OutlookAccountService] Email sent via sorathiyajenish1112@gmail.com to 1 recipient(s).
+[2026-02-22 07:08:30.581] [OutlookAccountService] Email sent via sorathiyajenish1112@gmail.com to 1 recipient(s).
+[2026-02-22 07:16:01.159] [OutlookAccountService] OutlookAccountService disposed. All COM objects released.
+[2026-02-22 07:16:24.557] [OutlookAccountService] Created new Outlook instance.
+[2026-02-22 07:16:24.744] [OutlookAccountService] Caching 2 Outlook account(s)...
+[2026-02-22 07:16:24.777] [OutlookAccountService]   ✓ Cached Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
+[2026-02-22 07:16:24.784] [OutlookAccountService]   ✓ Cached Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-22 07:16:27.842] [OutlookAccountService] OutlookAccountService disposed. All COM objects released.
+[2026-02-22 07:16:38.530] [OutlookAccountService] Created new Outlook instance.
+[2026-02-22 07:16:38.679] [OutlookAccountService] Caching 2 Outlook account(s)...
+[2026-02-22 07:16:38.706] [OutlookAccountService]   ✓ Cached Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
+[2026-02-22 07:16:38.717] [OutlookAccountService]   ✓ Cached Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-22 07:17:05.091] [OutlookAccountService] SendUsingAccount set to: sorathiyajenish1112@gmail.com
+[2026-02-22 07:17:05.133] [OutlookAccountService] ✓ Email SENT via [sorathiyajenish1112@gmail.com] to 1 recipient(s).
+[2026-02-22 07:17:10.355] [OutlookAccountService] SendUsingAccount set to: advahc1@yahoo.com
+[2026-02-22 07:17:10.421] [OutlookAccountService] ✓ Email SENT via [advahc1@yahoo.com] to 1 recipient(s).
+[2026-02-22 07:17:15.498] [OutlookAccountService] SendUsingAccount set to: sorathiyajenish1112@gmail.com
+[2026-02-22 07:17:15.521] [OutlookAccountService] ✓ Email SENT via [sorathiyajenish1112@gmail.com] to 1 recipient(s).

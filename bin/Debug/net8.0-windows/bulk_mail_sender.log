@@ -1,0 +1,33 @@
+[2026-02-22 07:07:04.797] [BulkMailSender] ERROR: No valid accounts available for sending.
+[2026-02-22 07:08:15.032] [BulkMailSender] Starting bulk send: 4 recipients, Strategy: SingleAccount, Accounts: 1, Batch Size: 1
+[2026-02-22 07:08:15.038] [BulkMailSender] Account distribution:
+[2026-02-22 07:08:15.047] [BulkMailSender]   [1] sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) — IMAP
+[2026-02-22 07:08:15.072] [BulkMailSender] [SingleAccount] Batch 1/4 → sorathiyajenish1112@gmail.com (1 recipients)
+[2026-02-22 07:08:15.298] [BulkMailSender] Waiting 5s before next batch...
+[2026-02-22 07:08:20.315] [BulkMailSender] [SingleAccount] Batch 2/4 → sorathiyajenish1112@gmail.com (1 recipients)
+[2026-02-22 07:08:20.411] [BulkMailSender] Waiting 5s before next batch...
+[2026-02-22 07:08:25.439] [BulkMailSender] [SingleAccount] Batch 3/4 → sorathiyajenish1112@gmail.com (1 recipients)
+[2026-02-22 07:08:25.514] [BulkMailSender] Waiting 5s before next batch...
+[2026-02-22 07:08:30.542] [BulkMailSender] [SingleAccount] Batch 4/4 → sorathiyajenish1112@gmail.com (1 recipients)
+[2026-02-22 07:08:30.602] [BulkMailSender] Bulk send completed in 00:15. Success: 4, Failed: 0
+[2026-02-22 07:08:30.604] [BulkMailSender] === BULK SEND SUMMARY ===
+[2026-02-22 07:08:30.605] [BulkMailSender]   Total: 4  |  Success: 4  |  Failed: 0
+[2026-02-22 07:08:30.605] [BulkMailSender]   Duration: 00:15
+[2026-02-22 07:08:30.606] [BulkMailSender]   Account sorathiyajenish1112@gmail.com: 4 emails
+[2026-02-22 07:08:30.606] [BulkMailSender] =========================
+[2026-02-22 07:17:05.010] [BulkMailSender] Starting bulk send: 3 recipients, Strategy: RoundRobin, Accounts: 2, Batch Size: 1
+[2026-02-22 07:17:05.018] [BulkMailSender] Account distribution:
+[2026-02-22 07:17:05.025] [BulkMailSender]   [1] sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) — IMAP
+[2026-02-22 07:17:05.030] [BulkMailSender]   [2] advahc1@yahoo.com (advahc1@yahoo.com) — IMAP
+[2026-02-22 07:17:05.057] [BulkMailSender] [RoundRobin] Batch 1/3 → sorathiyajenish1112@gmail.com (1 recipients)
+[2026-02-22 07:17:05.315] [BulkMailSender] Waiting 5s before next batch...
+[2026-02-22 07:17:10.342] [BulkMailSender] [RoundRobin] Batch 2/3 → advahc1@yahoo.com (1 recipients)
+[2026-02-22 07:17:10.464] [BulkMailSender] Waiting 5s before next batch...
+[2026-02-22 07:17:15.491] [BulkMailSender] [RoundRobin] Batch 3/3 → sorathiyajenish1112@gmail.com (1 recipients)
+[2026-02-22 07:17:15.558] [BulkMailSender] Bulk send completed in 00:10. Success: 3, Failed: 0
+[2026-02-22 07:17:15.560] [BulkMailSender] === BULK SEND SUMMARY ===
+[2026-02-22 07:17:15.560] [BulkMailSender]   Total: 3  |  Success: 3  |  Failed: 0
+[2026-02-22 07:17:15.561] [BulkMailSender]   Duration: 00:10
+[2026-02-22 07:17:15.561] [BulkMailSender]   Account sorathiyajenish1112@gmail.com: 2 emails
+[2026-02-22 07:17:15.562] [BulkMailSender]   Account advahc1@yahoo.com: 1 emails
+[2026-02-22 07:17:15.562] [BulkMailSender] =========================
