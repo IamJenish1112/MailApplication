@@ -9,5 +9,5 @@ if %ERRORLEVEL% EQU 0 (
     echo Application started!
 ) else (
     echo Build failed! Please check the errors above.
-    pause
+    
 )

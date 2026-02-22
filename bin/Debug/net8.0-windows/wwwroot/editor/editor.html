@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Template Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 9999;
+            transition: opacity 0.3s ease;
+        }
+
+        #loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e9ecef;
+            border-top-color: #0d6efd;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        /* Placeholder highlight style */
+        .mce-placeholder-tag {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #856404;
+            white-space: nowrap;
+        }
+
+        .tox-tinymce {
+            border: 1px solid #dee2e6 !important;
+            border-radius: 6px !important;
+        }
+    </style>
+    <!-- TinyMCE CDN (Community Free) — replace with self-hosted path if needed -->
+    <script src="https://cdn.tiny.cloud/1/o4thr6ijeqs9akd4xenlnkpsqkiptxa9oaynqhyqgi9ns2pf/tinymce/6/tinymce.min.js"
+        referrerpolicy="origin"></script>
+</head>
+
+<body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading editor...</div>
+    </div>
+
+    <textarea id="editor"></textarea>
+
+    <script>
+        // ─── TinyMCE Initialization ───────────────────────────
+        tinymce.init({
+            selector: '#editor',
+            height: '100%',
+            resize: false,
+            branding: false,
+            promotion: false,
+            statusbar: true,
+            menubar: 'file edit view insert format table',
+
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
+                'preview', 'anchor', 'searchreplace', 'visualblocks', 'code',
+                'fullscreen', 'insertdatetime', 'media', 'table', 'help',
+                'wordcount', 'emoticons', 'nonbreaking', 'quickbars'
+            ],
+
+            toolbar: [
+                'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough',
+                'forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent',
+                'link customimage inserttable | insertbutton insertplaceholder | code fullscreen preview | removeformat help'
+            ].join(' | '),
+
+            font_family_formats: [
+                'Arial=arial,helvetica,sans-serif',
+                'Calibri=calibri,candara,segoe,optima,sans-serif',
+                'Courier New=courier new,courier,monospace',
+                'Georgia=georgia,serif',
+                'Helvetica=helvetica,arial,sans-serif',
+                'Segoe UI=segoe ui,frutiger,dejavu sans,trebuchet ms,sans-serif',
+                'Tahoma=tahoma,arial,helvetica,sans-serif',
+                'Times New Roman=times new roman,times,serif',
+                'Trebuchet MS=trebuchet ms,lucida grande,lucida sans,sans-serif',
+                'Verdana=verdana,geneva,sans-serif'
+            ].join(';'),
+
+            font_size_formats: '8px 10px 11px 12px 14px 16px 18px 20px 24px 28px 32px 36px 48px',
+
+            // Email-friendly content styles
+            content_style: `
+                body {
+                    font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    color: #333333;
+                    margin: 16px;
+                    max-width: 680px;
+                }
+                table { border-collapse: collapse; width: 100%; }
+                td, th { border: 1px solid #dddddd; padding: 8px 12px; }
+                th { background-color: #f0f0f0; font-weight: bold; }
+                img { max-width: 100%; height: auto; }
+                a { color: #0d6efd; }
+                .email-button {
+                    display: inline-block;
+                    background-color: #0d6efd;
+                    color: #ffffff !important;
+                    padding: 12px 28px;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    font-weight: bold;
+                    font-size: 16px;
+                    text-align: center;
+                }
+                .mce-placeholder-tag {
+                    background: #fff3cd;
+                    border: 1px solid #ffc107;
+                    border-radius: 3px;
+                    padding: 1px 6px;
+                    font-family: monospace;
+                    font-size: 13px;
+                    color: #856404;
+                    white-space: nowrap;
+                }
+            `,
+
+            // Valid elements for email compatibility
+            valid_elements: '*[*]',
+            extended_valid_elements: 'span[*],a[*],img[*],table[*],tr[*],td[*],th[*],thead[*],tbody[*],div[*],p[*],br,hr,h1[*],h2[*],h3[*],h4[*],h5[*],h6[*],ul[*],ol[*],li[*],strong,em,u,s,blockquote[*],pre[*]',
+
+            // Table defaults
+            table_default_attributes: { border: '1' },
+            table_default_styles: { 'border-collapse': 'collapse', 'width': '100%' },
+            table_responsive_width: true,
+
+            // Image settings
+            images_upload_handler: function (blobInfo, progress) {
+                return new Promise(function (resolve) {
+                    var base64 = 'data:' + blobInfo.blob().type + ';base64,' + blobInfo.base64();
+                    resolve(base64);
+                });
+            },
+            automatic_uploads: true,
+            file_picker_types: 'image',
+            paste_data_images: true,
+
+            // Quick toolbar for images
+            quickbars_insert_toolbar: false,
+            quickbars_selection_toolbar: 'bold italic underline | forecolor backcolor | link',
+
+            // Setup custom buttons
+            setup: function (editor) {
+                // ── Custom Image Button (triggers C# file dialog) ──
+                editor.ui.registry.addButton('customimage', {
+                    icon: 'image',
+                    tooltip: 'Insert Image',
+                    onAction: function () {
+                        try {
+                            if (window.chrome && window.chrome.webview) {
+                                window.chrome.webview.hostObjects.bridge.RequestImageUpload();
+                            }
+                        } catch (e) {
+                            // Fallback: use TinyMCE's built-in image dialog
+                            editor.execCommand('mceImage');
+                        }
+                    }
+                });
+
+                // ── Insert CTA Button ──
+                editor.ui.registry.addButton('insertbutton', {
+                    icon: 'bookmark',
+                    tooltip: 'Insert CTA Button',
+                    onAction: function () {
+                        editor.windowManager.open({
+                            title: 'Insert CTA Button',
+                            body: {
+                                type: 'panel',
+                                items: [
+                                    { type: 'input', name: 'buttonText', label: 'Button Text' },
+                                    { type: 'input', name: 'buttonUrl', label: 'Button URL' },
+                                    {
+                                        type: 'colorinput', name: 'buttonColor',
+                                        label: 'Button Color'
+                                    }
+                                ]
+                            },
+                            buttons: [
+                                { type: 'cancel', text: 'Cancel' },
+                                { type: 'submit', text: 'Insert', primary: true }
+                            ],
+                            initialData: {
+                                buttonText: 'Click Here',
+                                buttonUrl: 'https://',
+                                buttonColor: '#0d6efd'
+                            },
+                            onSubmit: function (api) {
+                                var data = api.getData();
+                                var buttonHtml = '<table cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;">' +
+                                    '<tr><td align="center" bgcolor="' + (data.buttonColor || '#0d6efd') + '" ' +
+                                    'style="border-radius:5px;padding:0;">' +
+                                    '<a href="' + data.buttonUrl + '" target="_blank" ' +
+                                    'style="display:inline-block;background-color:' + (data.buttonColor || '#0d6efd') + ';' +
+                                    'color:#ffffff;padding:12px 28px;text-decoration:none;border-radius:5px;' +
+                                    'font-weight:bold;font-size:16px;font-family:Arial,sans-serif;">' +
+                                    data.buttonText + '</a></td></tr></table>';
+                                editor.insertContent(buttonHtml);
+                                api.close();
+                            }
+                        });
+                    }
+                });
+
+                // ── Insert Dynamic Placeholder ──
+                editor.ui.registry.addMenuButton('insertplaceholder', {
+                    icon: 'template',
+                    tooltip: 'Insert Placeholder',
+                    fetch: function (callback) {
+                        var placeholders = [
+                            { title: 'Name', value: '{{Name}}' },
+                            { title: 'Company', value: '{{Company}}' },
+                            { title: 'Order ID', value: '{{OrderId}}' },
+                            { title: 'Email', value: '{{Email}}' },
+                            { title: 'Date', value: '{{Date}}' },
+                            { title: 'Unsubscribe Link', value: '{{UnsubscribeLink}}' }
+                        ];
+                        var items = placeholders.map(function (p) {
+                            return {
+                                type: 'menuitem',
+                                text: p.title + '  →  ' + p.value,
+                                onAction: function () {
+                                    editor.insertContent(
+                                        '<span class="mce-placeholder-tag" contenteditable="false">' +
+                                        p.value + '</span>&nbsp;'
+                                    );
+                                }
+                            };
+                        });
+                        callback(items);
+                    }
+                });
+
+                // ── Editor Ready Event ──
+                editor.on('init', function () {
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                    try {
+                        if (window.chrome && window.chrome.webview) {
+                            window.chrome.webview.hostObjects.bridge.NotifyEditorReady();
+                        }
+                    } catch (e) { console.log('Bridge not available:', e); }
+                });
+
+                // ── Content Change Event (debounced) ──
+                var debounceTimer = null;
+                editor.on('input change NodeChange', function () {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(function () {
+                        try {
+                            if (window.chrome && window.chrome.webview) {
+                                var content = editor.getContent();
+                                window.chrome.webview.hostObjects.bridge.NotifyContentChanged(content);
+                            }
+                        } catch (e) { /* bridge not available */ }
+                    }, 500);
+                });
+            }
+        });
+
+        // ─── Functions called from C# ─────────────────────────
+
+        /** Set editor content (called from C#) */
+        function setEditorContent(html) {
+            if (tinymce.activeEditor) {
+                tinymce.activeEditor.setContent(html || '');
+            }
+        }
+
+        /** Get editor content (called from C#) */
+        function getEditorContent() {
+            if (tinymce.activeEditor) {
+                return tinymce.activeEditor.getContent();
+            }
+            return '';
+        }
+
+        /** Insert content at cursor (called from C#, e.g. for images) */
+        function insertContentAtCursor(html) {
+            if (tinymce.activeEditor) {
+                tinymce.activeEditor.insertContent(html);
+            }
+        }
+
+        /** Set editor to read-only mode (for preview) */
+        function setReadOnly(readOnly) {
+            if (tinymce.activeEditor) {
+                tinymce.activeEditor.mode.set(readOnly ? 'readonly' : 'design');
+            }
+        }
+    </script>
+</body>
+
+</html>
