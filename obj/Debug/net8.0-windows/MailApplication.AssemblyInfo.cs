@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MailApplication")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dc85ee5ec274cdf4eabaad8b2c82aa097a7c4a62")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f2caba1bdc739d739fdea72729f049bf9d4926c7")]
 [assembly: System.Reflection.AssemblyProductAttribute("MailApplication")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MailApplication")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

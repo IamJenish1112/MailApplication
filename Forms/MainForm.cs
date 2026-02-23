@@ -209,7 +209,7 @@ public partial class MainForm : Form
 
     private void LoadAccountsTab()
     {
-        var accountsControl = new AccountsControl(_dbService, _outlookService);
+        var accountsControl = new AccountsControl(_accountService);
         LoadUserControl(accountsControl, btnAccounts);
     }
 
