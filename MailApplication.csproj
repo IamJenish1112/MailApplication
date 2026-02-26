@@ -10,6 +10,14 @@
 
   <ItemGroup>
     <PackageReference Include="MongoDB.Driver" Version="2.24.0" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+    <PackageReference Include="PreMailer.Net" Version="2.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="wwwroot\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

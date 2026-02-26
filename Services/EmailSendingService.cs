@@ -25,6 +25,7 @@ public class EmailSendingService
         Draft draft,
         int batchSize,
         int delaySeconds,
+        string? senderSmtpAddress = null,
         CancellationToken cancellationToken = default)
     {
         _isSending = true;
@@ -49,14 +50,14 @@ public class EmailSendingService
                 var batch = unsentRecipients.Skip(i).Take(batchSize).ToList();
                 var bccList = string.Join(";", batch.Select(r => r.Email));
 
-                var uniqueWhiteline = GenerateUniqueWhiteline();
-                var bodyWithWhiteline = draft.IsHtml
-                    ? $"{draft.Body}<span style='color:white;font-size:1px;'>{uniqueWhiteline}</span>"
-                    : $"{draft.Body}\n{uniqueWhiteline}";
+                // Generate invisible unique identifier per batch
+                var uniqueId = GenerateInvisibleUniqueIdentifier();
+                var bodyWithUniqueId = InjectInvisibleIdentifier(draft.Body, uniqueId, draft.IsHtml);
 
                 try
                 {
-                    _outlookService.SendEmail(bccList, draft.Subject, bodyWithWhiteline, draft.IsHtml);
+                    // Send using BCC only (no TO field), with optional sender account
+                    _outlookService.SendEmail(bccList, draft.Subject, bodyWithUniqueId, draft.IsHtml, senderSmtpAddress);
 
                     foreach (var recipient in batch)
                     {
@@ -101,9 +102,50 @@ public class EmailSendingService
         }
     }
 
-    private string GenerateUniqueWhiteline()
+    /// <summary>
+    /// Generates an invisible unique identifier using zero-width Unicode characters
+    /// combined with an HTML comment for maximum hash uniqueness.
+    /// </summary>
+    private string GenerateInvisibleUniqueIdentifier()
     {
-        return Guid.NewGuid().ToString("N");
+        var guid = Guid.NewGuid().ToString("N");
+        // Convert GUID chars to zero-width character sequences
+        var zeroWidthChars = new[] { "\u200B", "\u200C", "\u200D", "\uFEFF" }; // ZWSP, ZWNJ, ZWJ, BOM
+        var encoded = string.Join("", guid.Select(c =>
+            zeroWidthChars[Math.Abs(c.GetHashCode()) % zeroWidthChars.Length]));
+        return encoded;
+    }
+
+    /// <summary>
+    /// Injects an invisible unique identifier into the email body.
+    /// Uses HTML comment + zero-width characters in a hidden div.
+    /// Invisible to recipient but modifies email body hash.
+    /// </summary>
+    private string InjectInvisibleIdentifier(string body, string uniqueId, bool isHtml)
+    {
+        var commentTag = $"<!--{Guid.NewGuid():N}-->";
+
+        if (isHtml)
+        {
+            // Use a combination of: HTML comment + hidden div with zero-width chars
+            var hiddenBlock = $"{commentTag}<div style=\"display:none!important;font-size:0;line-height:0;max-height:0;overflow:hidden;mso-hide:all;\">{uniqueId}</div>";
+
+            // Insert before </body> if exists, otherwise append
+            if (body.Contains("</body>", StringComparison.OrdinalIgnoreCase))
+            {
+                var insertIndex = body.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+                return body.Insert(insertIndex, hiddenBlock);
+            }
+            else
+            {
+                return body + hiddenBlock;
+            }
+        }
+        else
+        {
+            // For plain text, use zero-width characters only (invisible)
+            return body + "\n" + uniqueId;
+        }
     }
 }
 

@@ -18,4 +18,6 @@ public class MongoDbService
     public IMongoCollection<Industry> Industries => _database.GetCollection<Industry>("industries");
     public IMongoCollection<EmailAccount> EmailAccounts => _database.GetCollection<EmailAccount>("emailAccounts");
     public IMongoCollection<AppSettings> Settings => _database.GetCollection<AppSettings>("settings");
+    public IMongoCollection<EmailTemplate> EmailTemplates => _database.GetCollection<EmailTemplate>("emailTemplates");
+    public IMongoCollection<TemplateImage> TemplateImages => _database.GetCollection<TemplateImage>("templateImages");
 }

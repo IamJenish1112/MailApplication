@@ -19,6 +19,8 @@ public partial class MainForm : Form
     private MongoDbService _dbService;
     private OutlookService _outlookService;
     private EmailSendingService _emailService;
+    private OutlookAccountService _accountService;
+    private BulkMailSenderService _bulkSenderService;
 
     private UserControl? _currentControl;
     private Button? _activeButton;
@@ -36,6 +38,8 @@ public partial class MainForm : Form
         _dbService = new MongoDbService();
         _outlookService = new OutlookService();
         _emailService = new EmailSendingService(_dbService, _outlookService);
+        _accountService = new OutlookAccountService();
+        _bulkSenderService = new BulkMailSenderService(_dbService, _accountService);
 
         if (!_outlookService.IsAvailable)
         {
@@ -181,7 +185,7 @@ public partial class MainForm : Form
 
     private void LoadSendMailTab()
     {
-        var sendMailControl = new SendMailControl(_dbService, _outlookService, _emailService);
+        var sendMailControl = new SendMailControl(_dbService, _outlookService, _emailService, _accountService, _bulkSenderService);
         LoadUserControl(sendMailControl, btnSendMail);
     }
 
@@ -205,7 +209,7 @@ public partial class MainForm : Form
 
     private void LoadAccountsTab()
     {
-        var accountsControl = new AccountsControl(_dbService);
+        var accountsControl = new AccountsControl(_accountService);
         LoadUserControl(accountsControl, btnAccounts);
     }
 
@@ -218,6 +222,7 @@ public partial class MainForm : Form
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         _outlookService?.Dispose();
+        _accountService?.Dispose();
         base.OnFormClosing(e);
     }
 }

@@ -1,0 +1,2 @@
+C:\Users\sorat\source\repos\MailApplication\Services\BulkMailSenderService.cs(167,17): error CS0815: Cannot assign void to an implicitly-typed variable [C:\Users\sorat\source\repos\MailApplication\MailApplication.csproj]
+C:\Users\sorat\source\repos\MailApplication\Services\BulkMailSenderService.cs(167,17): error CS0815: Cannot assign void to an implicitly-typed variable [C:\Users\sorat\source\repos\MailApplication\MailApplication.csproj]

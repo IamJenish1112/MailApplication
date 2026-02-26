@@ -1,19 +1,22 @@
 {
   "version": 2,
-  "dgSpecHash": "mbLq8L4sNWA=",
+  "dgSpecHash": "QPc3g53QFEI=",
   "success": true,
   "projectFilePath": "C:\\Users\\sorat\\source\\repos\\MailApplication\\MailApplication.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\sorat\\.nuget\\packages\\anglesharp\\1.0.7\\anglesharp.1.0.7.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\awssdk.core\\3.7.100.14\\awssdk.core.3.7.100.14.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\awssdk.securitytoken\\3.7.100.14\\awssdk.securitytoken.3.7.100.14.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\dnsclient\\1.6.1\\dnsclient.1.6.1.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\2.0.0\\microsoft.extensions.logging.abstractions.2.0.0.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\microsoft.netcore.platforms\\5.0.0\\microsoft.netcore.platforms.5.0.0.nupkg.sha512",
+    "C:\\Users\\sorat\\.nuget\\packages\\microsoft.web.webview2\\1.0.2903.40\\microsoft.web.webview2.1.0.2903.40.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\microsoft.win32.registry\\5.0.0\\microsoft.win32.registry.5.0.0.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\mongodb.bson\\2.24.0\\mongodb.bson.2.24.0.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\mongodb.driver\\2.24.0\\mongodb.driver.2.24.0.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\mongodb.driver.core\\2.24.0\\mongodb.driver.core.2.24.0.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\mongodb.libmongocrypt\\1.8.2\\mongodb.libmongocrypt.1.8.2.nupkg.sha512",
+    "C:\\Users\\sorat\\.nuget\\packages\\premailer.net\\2.5.0\\premailer.net.2.5.0.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\sharpcompress\\0.30.1\\sharpcompress.0.30.1.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\snappier\\1.0.0\\snappier.1.0.0.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\system.buffers\\4.5.1\\system.buffers.4.5.1.nupkg.sha512",
@@ -21,6 +24,7 @@
     "C:\\Users\\sorat\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\5.0.0\\system.runtime.compilerservices.unsafe.5.0.0.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\system.security.accesscontrol\\5.0.0\\system.security.accesscontrol.5.0.0.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\system.security.principal.windows\\5.0.0\\system.security.principal.windows.5.0.0.nupkg.sha512",
+    "C:\\Users\\sorat\\.nuget\\packages\\system.text.encoding.codepages\\8.0.0\\system.text.encoding.codepages.8.0.0.nupkg.sha512",
     "C:\\Users\\sorat\\.nuget\\packages\\zstdsharp.port\\0.7.3\\zstdsharp.port.0.7.3.nupkg.sha512"
   ],
   "logs": []
