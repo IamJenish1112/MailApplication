@@ -100,8 +100,8 @@ public partial class RecipientsControl : UserControl
 
         btnAddRecipient = CreateButton("Add Recipient", 0);
         btnEditRecipient = CreateButton("Edit", 160);
-        btnDeleteRecipient = CreateButton("Delete", 280);
-        btnImport = CreateButton("Import from File", 450);
+        btnDeleteRecipient = CreateButton("Delete", 300);
+        btnImport = CreateButton("Import from File", 470);
         btnRefresh = CreateButton("Refresh", 650);
 
         btnAddRecipient.Click += BtnAddRecipient_Click;
