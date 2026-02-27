@@ -164,7 +164,7 @@ public class BulkMailSenderService
 
             RaiseStatus($"[SingleAccount] Batch {batchNumber}/{totalBatches} → {account.SmtpAddress} ({batch.Count} recipients)");
 
-            await SendBatchAsync(batch, account, request.Draft, batchNumber, summary);
+            await SendBatchAsync(batch, account, request.Draft, batchNumber, summary, request.ReplyToEmail);
 
             RaiseBatchProgress(batchNumber, totalBatches, summary.SuccessCount, recipients.Count);
 
@@ -211,7 +211,7 @@ public class BulkMailSenderService
 
                 try
                 {
-                    await SendBatchAsync(batch, account, request.Draft, batchNumber, summary);
+                    await SendBatchAsync(batch, account, request.Draft, batchNumber, summary, request.ReplyToEmail);
                     sent = true;
                 }
                 catch (Exception ex)
@@ -293,7 +293,8 @@ public class BulkMailSenderService
     /// </summary>
     private async Task SendBatchAsync(
         List<Recipient> batch, EmailAccount account,
-        Draft draft, int batchNumber, BulkSendSummary summary)
+        Draft draft, int batchNumber, BulkSendSummary summary,
+        string? replyToEmail = null)
     {
         var bccList = string.Join(";", batch.Select(r => r.Email));
 
@@ -302,7 +303,7 @@ public class BulkMailSenderService
         var bodyWithUniqueId = InjectInvisibleIdentifier(draft.Body, uniqueId, draft.IsHtml);
 
         // Send email via OutlookAccountService
-        _accountService.SendEmail(bccList, draft.Subject, bodyWithUniqueId, draft.IsHtml, account.SmtpAddress);
+        _accountService.SendEmail(bccList, draft.Subject, bodyWithUniqueId, draft.IsHtml, account.SmtpAddress, replyToEmail);
 
         // Update tracking
         account.SentCount += batch.Count;

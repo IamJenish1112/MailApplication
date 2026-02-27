@@ -50,13 +50,13 @@ public partial class DraftsControl : UserControl
 
         tabControl = new TabControl
         {
-            Location = new Point(0, 60),
-            Size = new Size(this.Width - 40, this.Height - 180),
+            Location = new Point(0, 115),
+            Size = new Size(this.Width - 40, this.Height - 135),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
             Font = new Font("Segoe UI", 10)
         };
 
-        tabAppDrafts = new TabPage("Application Drafts");
+        tabAppDrafts = new TabPage("Application Drafts (In DB)");
         tabOutlookDrafts = new TabPage("Outlook Drafts");
 
         listViewApp = CreateListView();
@@ -70,17 +70,23 @@ public partial class DraftsControl : UserControl
 
         var buttonPanel = new Panel
         {
-            Height = 60,
-            Dock = DockStyle.Bottom,
+            Location = new Point(0, 50),
+            Size = new Size(this.Width - 40, 60),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             BackColor = Color.White,
             Padding = new Padding(0, 10, 0, 0)
         };
 
-        btnCreateNew = CreateButton("Create New", 0);
-        btnEdit = CreateButton("Edit", 140);
-        btnDelete = CreateButton("Delete", 280);
-        btnPreview = CreateButton("Preview", 420);
-        btnRefresh = CreateButton("Refresh", 560);
+        btnCreateNew = CreateButton("Create New (Compose)", 0);
+        btnCreateNew.Size = new Size(240, 38);
+        btnEdit = CreateButton("Edit", 250);
+        btnEdit.Size = new Size(120, 38);
+        btnDelete = CreateButton("Delete", 380);
+        btnDelete.Size = new Size(120, 38);
+        btnPreview = CreateButton("Preview", 510);
+        btnPreview.Size = new Size(120, 38);
+        btnRefresh = CreateButton("Refresh", 640);
+        btnRefresh.Size = new Size(120, 38);
 
         btnCreateNew.Click += BtnCreateNew_Click;
         btnEdit.Click += BtnEdit_Click;
@@ -97,8 +103,8 @@ public partial class DraftsControl : UserControl
         buttonPanel.Controls.AddRange(new Control[] { btnCreateNew, btnEdit, btnDelete, btnPreview, btnRefresh });
 
         this.Controls.Add(titleLabel);
-        this.Controls.Add(tabControl);
         this.Controls.Add(buttonPanel);
+        this.Controls.Add(tabControl);
     }
 
     private ListView CreateListView()

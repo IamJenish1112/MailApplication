@@ -189,7 +189,7 @@ public class OutlookAccountService : IDisposable
     /// Sends a single email using the specified Outlook account.
     /// Uses the CACHED COM account object for SendUsingAccount (reliable).
     /// </summary>
-    public bool SendEmail(string bccRecipients, string subject, string body, bool isHtml, string senderSmtpAddress)
+    public bool SendEmail(string bccRecipients, string subject, string body, bool isHtml, string senderSmtpAddress, string? replyToEmail = null)
     {
         if (!IsAvailable || _outlookApp == null)
             throw new InvalidOperationException("Outlook is not available.");
@@ -250,12 +250,37 @@ public class OutlookAccountService : IDisposable
                         null, mailItem, new object[] { bccRecipients });
                 }
 
-                // 5. Send
+                // 5. Set Reply-To header if specified
+                if (!string.IsNullOrWhiteSpace(replyToEmail))
+                {
+                    try
+                    {
+                        // Use Outlook PropertyAccessor to set the Reply-To Internet header
+                        // PR_REPLY_RECIPIENT_NAMES is the simplest approach via headers
+                        const string PR_REPLY_RECIPIENT_NAMES = "http://schemas.microsoft.com/mapi/proptag/0x0050001E";
+                        var propAccessor = itemType.InvokeMember("PropertyAccessor",
+                            System.Reflection.BindingFlags.GetProperty,
+                            null, mailItem, null);
+                        if (propAccessor != null)
+                        {
+                            propAccessor.GetType().InvokeMember("SetProperty",
+                                System.Reflection.BindingFlags.InvokeMethod,
+                                null, propAccessor, new object[] { PR_REPLY_RECIPIENT_NAMES, replyToEmail });
+                            Log($"Reply-To set to: {replyToEmail}");
+                        }
+                    }
+                    catch (Exception rtEx)
+                    {
+                        Log($"WARNING: Could not set Reply-To header: {rtEx.Message}");
+                    }
+                }
+
+                // 6. Send
                 itemType.InvokeMember("Send",
                     System.Reflection.BindingFlags.InvokeMethod,
                     null, mailItem, null);
 
-                Log($"✓ Email SENT via [{senderSmtpAddress}] to {bccRecipients.Split(';').Length} recipient(s).");
+                Log($"✓ Email SENT via [{senderSmtpAddress}] to {bccRecipients.Split(';').Length} recipient(s). ReplyTo={replyToEmail ?? "(none)"}");
                 return true;
             }
         }

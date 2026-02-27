@@ -8,30 +8,73 @@ namespace MailApplication.UserControls;
 public partial class SettingsControl : UserControl
 {
     private readonly MongoDbService _dbService;
+    private readonly OutlookAccountService _accountService;
+
+    // ── Industry Management tab ──────────────────────────────────────────────
     private ListView listViewIndustries;
     private Button btnAddIndustry;
     private Button btnEditIndustry;
     private Button btnDeleteIndustry;
-    private Button btnRefresh;
+    private Button btnRefreshIndustries;
+    private List<Industry> _industries = new();
+
+    // ── App Settings tab ─────────────────────────────────────────────────────
     private TextBox txtBatchSize;
     private TextBox txtDelay;
     private Button btnSaveSettings;
 
-    private List<Industry> _industries = new();
+    // ── Recipients tab ───────────────────────────────────────────────────────
+    private ComboBox cmbIndustryFilter;
+    private ListView listViewRecipients;
+    private Button btnAddRecipient;
+    private Button btnEditRecipient;
+    private Button btnDeleteRecipient;
+    private Button btnImportRecipients;
+    private Button btnRefreshRecipients;
+    private TextBox txtSearch;
+    private List<Recipient> _allRecipients = new();
+    private List<Industry> _allIndustries = new();
 
-    public SettingsControl(MongoDbService dbService)
+    // ── Accounts tab ─────────────────────────────────────────────────────────
+    private ListView listViewAccounts;
+    private Button btnRefreshAccounts;
+    private Label lblAccountStatus;
+    private List<EmailAccount> _accounts = new();
+
+    // ── Reply-To Accounts tab ────────────────────────────────────────────────
+    private ListView listViewReplyTo;
+    private Button btnAddReplyTo;
+    private Button btnEditReplyTo;
+    private Button btnDeleteReplyTo;
+    private Button btnRefreshReplyTo;
+    private List<ReplyToAccount> _replyToAccounts = new();
+
+    public SettingsControl(MongoDbService dbService, OutlookAccountService? accountService = null)
     {
         _dbService = dbService;
+        _accountService = accountService ?? new OutlookAccountService();
         InitializeComponent();
         SetupUI();
-        LoadData();
+        LoadAllData();
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  UI SETUP
+    // ═══════════════════════════════════════════════════════════════════════════
 
     private void SetupUI()
     {
-        this.BackColor = Color.White;
-        this.Padding = new Padding(20);
-        this.AutoScroll = true;
+        this.BackColor = Color.FromArgb(248, 249, 250);
+        this.Padding = new Padding(0);
+
+        // ── Header bar ──────────────────────────────────────────────────────
+        var headerPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 70,
+            BackColor = Color.White,
+            Padding = new Padding(24, 0, 0, 0)
+        };
 
         var titleLabel = new Label
         {
@@ -39,133 +82,575 @@ public partial class SettingsControl : UserControl
             Font = new Font("Segoe UI", 18, FontStyle.Bold),
             ForeColor = Color.FromArgb(33, 37, 41),
             AutoSize = true,
-            Location = new Point(0, 0)
+            Location = new Point(24, 16)
         };
 
-        var lblIndustries = new Label
+
+        headerPanel.Controls.AddRange(new Control[] { titleLabel});
+
+        // ── Tab control ──────────────────────────────────────────────────────
+        var tabControl = new TabControl
         {
-            Text = "Industry Management",
-            Location = new Point(0, 60),
-            Size = new Size(300, 30),
-            Font = new Font("Segoe UI", 14, FontStyle.Bold),
-            ForeColor = Color.FromArgb(33, 37, 41)
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 10, FontStyle.Regular),
+            Padding = new Point(16, 6)
         };
 
-        listViewIndustries = new ListView
+        tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
+        tabControl.DrawItem += TabControl_DrawItem;
+
+        var tabRecipients  = new TabPage { Text = "  Recipients  ",          BackColor = Color.White };
+        var tabAccounts    = new TabPage { Text = "  Outgoing SMTP Emails  ",  BackColor = Color.White };
+        var tabIndustries  = new TabPage { Text = "  Industry Management  ",  BackColor = Color.White };
+        var tabAppSettings = new TabPage { Text = "  Campaign Settings  ",    BackColor = Color.White };
+        var tabReplyTo     = new TabPage { Text = "  Reply-To Accounts  ",    BackColor = Color.White };
+
+        BuildRecipientsTab(tabRecipients);
+        BuildAccountsTab(tabAccounts);
+        BuildIndustriesTab(tabIndustries);
+        BuildAppSettingsTab(tabAppSettings);
+        BuildReplyToTab(tabReplyTo);
+
+        tabControl.TabPages.AddRange(new[] { tabRecipients, tabAccounts, tabIndustries, tabAppSettings, tabReplyTo });
+
+        this.Controls.Add(tabControl);
+        this.Controls.Add(headerPanel);
+    }
+
+    // ─── Custom tab header drawing ────────────────────────────────────────────
+    private void TabControl_DrawItem(object? sender, DrawItemEventArgs e)
+    {
+        var tc = (TabControl)sender!;
+        var tab = tc.TabPages[e.Index];
+        bool selected = e.Index == tc.SelectedIndex;
+
+        var bgColor = selected ? Color.White : Color.FromArgb(240, 242, 245);
+        var fgColor = selected ? Color.FromArgb(13, 110, 253) : Color.FromArgb(73, 80, 87);
+        var font    = new Font("Segoe UI", 10, selected ? FontStyle.Bold : FontStyle.Regular);
+
+        e.Graphics.FillRectangle(new SolidBrush(bgColor), e.Bounds);
+
+        if (selected)
         {
-            Location = new Point(0, 100),
-            Size = new Size(980, 300),
+            // Bottom accent bar
+            e.Graphics.FillRectangle(
+                new SolidBrush(Color.FromArgb(13, 110, 253)),
+                new Rectangle(e.Bounds.Left, e.Bounds.Bottom - 3, e.Bounds.Width, 3));
+        }
+
+        var textRect = new RectangleF(e.Bounds.Left, e.Bounds.Top + 4, e.Bounds.Width, e.Bounds.Height - 4);
+        var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+        e.Graphics.DrawString(tab.Text, font, new SolidBrush(fgColor), textRect, sf);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  TAB: RECIPIENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private void BuildRecipientsTab(TabPage page)
+    {
+        page.Padding = new Padding(16);
+        page.AutoScroll = true;
+
+        var lblTitle = MakeSectionLabel("Recipient Management", new Point(0, 0));
+
+        var filterPanel = new Panel
+        {
+            Location = new Point(0, 44),
+            Size = new Size(980, 35),
+            BackColor = Color.White
+        };
+
+        var lblIndustry = new Label
+        {
+            Text = "Filter by Industry:",
+            Location = new Point(0, 6),
+            Size = new Size(140, 22),
+            Font = new Font("Segoe UI", 10, FontStyle.Bold)
+        };
+
+        cmbIndustryFilter = new ComboBox
+        {
+            Location = new Point(148, 3),
+            Size = new Size(230, 28),
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Font = new Font("Segoe UI", 10)
+        };
+        cmbIndustryFilter.SelectedIndexChanged += (s, e) => FilterRecipients();
+
+        var lblSearch = new Label
+        {
+            Text = "Search:",
+            Location = new Point(400, 6),
+            Size = new Size(65, 22),
+            Font = new Font("Segoe UI", 10, FontStyle.Bold)
+        };
+
+        txtSearch = new TextBox
+        {
+            Location = new Point(470, 3),
+            Size = new Size(250, 28),
+            Font = new Font("Segoe UI", 10)
+        };
+        txtSearch.TextChanged += (s, e) => FilterRecipients();
+
+        filterPanel.Controls.AddRange(new Control[] { lblIndustry, cmbIndustryFilter, lblSearch, txtSearch });
+
+        listViewRecipients = new ListView
+        {
+            Location = new Point(0, 94),
+            Size = new Size(980, 420),
             View = View.Details,
             FullRowSelect = true,
             GridLines = true,
-            Font = new Font("Segoe UI", 10)
+            Font = new Font("Segoe UI", 10),
+            BorderStyle = BorderStyle.FixedSingle
         };
+        listViewRecipients.Columns.Add("Email", 290);
+        listViewRecipients.Columns.Add("Name", 190);
+        listViewRecipients.Columns.Add("Industries", 270);
+        listViewRecipients.Columns.Add("Status", 100);
+        listViewRecipients.Columns.Add("Created", 100);
 
-        listViewIndustries.Columns.Add("Industry Name", 500);
-        listViewIndustries.Columns.Add("Description", 350);
-        listViewIndustries.Columns.Add("Created", 130);
-
-        var buttonPanel = new Panel
+        var btnPanel = new Panel
         {
-            Location = new Point(0, 420),
+            Location = new Point(0, 528),
             Size = new Size(980, 50),
             BackColor = Color.White
         };
 
-        btnAddIndustry = CreateButton("Add Industry", 0);
-        btnEditIndustry = CreateButton("Edit", 150);
-        btnDeleteIndustry = CreateButton("Delete", 270);
-        btnRefresh = CreateButton("Refresh", 390);
+        btnAddRecipient     = MakeTabButton("+ Add Single Recipient", 0);
+        btnAddRecipient.Size = new Size(200, 38);
 
-        btnAddIndustry.Click += BtnAddIndustry_Click;
-        btnEditIndustry.Click += BtnEditIndustry_Click;
-        btnDeleteIndustry.Click += BtnDeleteIndustry_Click;
-        btnRefresh.Click += (s, e) => LoadData();
+        btnImportRecipients = MakeTabButton("📂 Add/Import Multiple Recipients", 210);
+        btnImportRecipients.Size = new Size(280, 38);
 
-        buttonPanel.Controls.AddRange(new Control[] { btnAddIndustry, btnEditIndustry, btnDeleteIndustry, btnRefresh });
+        btnEditRecipient    = MakeTabButton("✏ Edit", 500);
+        btnEditRecipient.Size = new Size(120, 38);
 
-        var lblAppSettings = new Label
+        btnDeleteRecipient  = MakeTabButton("🗑 Delete", 630, Color.FromArgb(220, 53, 69));
+        btnDeleteRecipient.Size = new Size(120, 38);
+
+        btnRefreshRecipients = MakeTabButton("⟳ Refresh", 760);
+        btnRefreshRecipients.Size = new Size(120, 38);
+
+        btnAddRecipient.Click      += BtnAddRecipient_Click;
+        btnEditRecipient.Click     += BtnEditRecipient_Click;
+        btnDeleteRecipient.Click   += BtnDeleteRecipient_Click;
+        btnImportRecipients.Click  += BtnImportRecipients_Click;
+        btnRefreshRecipients.Click += async (s, e) => { await LoadIndustries(); await LoadRecipients(); };
+
+        btnPanel.Controls.AddRange(new Control[] { btnAddRecipient, btnEditRecipient, btnDeleteRecipient, btnImportRecipients, btnRefreshRecipients });
+
+        page.Controls.AddRange(new Control[] { lblTitle, filterPanel, listViewRecipients, btnPanel });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  TAB: ACCOUNTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private void BuildAccountsTab(TabPage page)
+    {
+        page.Padding = new Padding(16);
+
+        var lblTitle = MakeSectionLabel("Outgoing SMTP Email Accounts", new Point(0, 0));
+
+        var infoLabel = new Label
         {
-            Text = "Application Settings",
-            Location = new Point(0, 500),
-            Size = new Size(300, 30),
-            Font = new Font("Segoe UI", 14, FontStyle.Bold),
-            ForeColor = Color.FromArgb(33, 37, 41)
+            Text = "Configured Outlook accounts used for sending bulk emails via round-robin rotation.",
+            Location = new Point(0, 44),
+            Size = new Size(900, 22),
+            Font = new Font("Segoe UI", 10),
+            ForeColor = Color.FromArgb(108, 117, 125)
+        };
+
+        lblAccountStatus = new Label
+        {
+            Text = "",
+            Location = new Point(0, 70),
+            Size = new Size(980, 22),
+            Font = new Font("Segoe UI", 9, FontStyle.Italic),
+            ForeColor = Color.FromArgb(25, 135, 84)
+        };
+
+        listViewAccounts = new ListView
+        {
+            Location = new Point(0, 100),
+            Size = new Size(980, 430),
+            View = View.Details,
+            FullRowSelect = true,
+            GridLines = true,
+            Font = new Font("Segoe UI", 10),
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        listViewAccounts.Columns.Add("#", 40);
+        listViewAccounts.Columns.Add("Display Name", 240);
+        listViewAccounts.Columns.Add("SMTP / Email Address", 300);
+        listViewAccounts.Columns.Add("Account Type", 150);
+        listViewAccounts.Columns.Add("Sending Order", 150);
+
+        btnRefreshAccounts = MakeTabButton("⟳ Refresh", 0);
+        btnRefreshAccounts.Location = new Point(0, 545);
+        btnRefreshAccounts.Click += (s, e) => LoadAccounts();
+
+        page.Controls.AddRange(new Control[] { lblTitle, infoLabel, lblAccountStatus, listViewAccounts, btnRefreshAccounts });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  TAB: INDUSTRY MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private void BuildIndustriesTab(TabPage page)
+    {
+        page.Padding = new Padding(16);
+
+        var lblTitle = MakeSectionLabel("Industry Management", new Point(0, 0));
+
+        listViewIndustries = new ListView
+        {
+            Location = new Point(0, 50),
+            Size = new Size(980, 370),
+            View = View.Details,
+            FullRowSelect = true,
+            GridLines = true,
+            Font = new Font("Segoe UI", 10),
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        listViewIndustries.Columns.Add("Industry Name", 500);
+        listViewIndustries.Columns.Add("Description", 350);
+        listViewIndustries.Columns.Add("Created", 130);
+
+        var btnPanel = new Panel
+        {
+            Location = new Point(0, 434),
+            Size = new Size(980, 50),
+            BackColor = Color.White
+        };
+
+        btnAddIndustry    = MakeTabButton("+ Add Industry", 0);
+        btnEditIndustry   = MakeTabButton("✏ Edit", 160);
+        btnDeleteIndustry = MakeTabButton("🗑 Delete", 315, Color.FromArgb(220, 53, 69));
+        btnRefreshIndustries = MakeTabButton("⟳ Refresh", 460);
+
+        btnAddIndustry.Click    += BtnAddIndustry_Click;
+        btnEditIndustry.Click   += BtnEditIndustry_Click;
+        btnDeleteIndustry.Click += BtnDeleteIndustry_Click;
+        btnRefreshIndustries.Click += async (s, e) => await LoadIndustriesForTab();
+
+        btnPanel.Controls.AddRange(new Control[] { btnAddIndustry, btnEditIndustry, btnDeleteIndustry, btnRefreshIndustries });
+
+        page.Controls.AddRange(new Control[] { lblTitle, listViewIndustries, btnPanel });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  TAB: APP SETTINGS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private void BuildAppSettingsTab(TabPage page)
+    {
+        page.Padding = new Padding(16);
+
+        var lblTitle = MakeSectionLabel("Campaign Settings", new Point(0, 0));
+
+        // Card panel
+        var card = new Panel
+        {
+            Location = new Point(0, 54),
+            Size = new Size(560, 220),
+            BackColor = Color.White,
+            Padding = new Padding(20)
+        };
+        card.Paint += (s, e) =>
+        {
+            var pen = new Pen(Color.FromArgb(222, 226, 230), 1);
+            e.Graphics.DrawRectangle(pen, 0, 0, card.Width - 1, card.Height - 1);
         };
 
         var lblBatchSize = new Label
         {
-            Text = "Default Batch Size:",
-            Location = new Point(0, 550),
-            Size = new Size(200, 25),
+            Text = "Default BCC Count:",
+            Location = new Point(20, 30),
+            Size = new Size(180, 25),
             Font = new Font("Segoe UI", 10, FontStyle.Bold)
         };
 
         txtBatchSize = new TextBox
         {
-            Location = new Point(210, 550),
-            Size = new Size(150, 30),
+            Location = new Point(210, 28),
+            Size = new Size(120, 28),
             Text = "50",
             Font = new Font("Segoe UI", 10)
         };
 
+        var lblBatchHint = new Label
+        {
+            Text = "Number of emails in BCC field",
+            Location = new Point(340, 31),
+            Size = new Size(200, 22),
+            Font = new Font("Segoe UI", 9),
+            ForeColor = Color.FromArgb(108, 117, 125)
+        };
+
         var lblDelay = new Label
         {
-            Text = "Default Delay (seconds):",
-            Location = new Point(400, 550),
-            Size = new Size(200, 25),
+            Text = "Delay Between Emails:",
+            Location = new Point(20, 80),
+            Size = new Size(180, 25),
             Font = new Font("Segoe UI", 10, FontStyle.Bold)
         };
 
         txtDelay = new TextBox
         {
-            Location = new Point(610, 550),
-            Size = new Size(150, 30),
+            Location = new Point(210, 78),
+            Size = new Size(120, 28),
             Text = "60",
             Font = new Font("Segoe UI", 10)
         };
 
+        var lblDelayHint = new Label
+        {
+            Text = "Seconds to wait between emails",
+            Location = new Point(340, 81),
+            Size = new Size(200, 22),
+            Font = new Font("Segoe UI", 9),
+            ForeColor = Color.FromArgb(108, 117, 125)
+        };
+
+        var divider = new Panel
+        {
+            Location = new Point(20, 120),
+            Size = new Size(520, 1),
+            BackColor = Color.FromArgb(222, 226, 230)
+        };
+
         btnSaveSettings = new Button
         {
-            Text = "Save Settings",
-            Location = new Point(0, 610),
-            Size = new Size(150, 40),
-            BackColor = Color.FromArgb(40, 167, 69),
+            Text = "💾  Save Settings",
+            Location = new Point(20, 140),
+            Size = new Size(170, 42),
+            BackColor = Color.FromArgb(25, 135, 84),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             Cursor = Cursors.Hand
         };
+        btnSaveSettings.FlatAppearance.BorderSize = 0;
         btnSaveSettings.Click += BtnSaveSettings_Click;
 
-        this.Controls.AddRange(new Control[] {
-            titleLabel, lblIndustries, listViewIndustries, buttonPanel,
-            lblAppSettings, lblBatchSize, txtBatchSize, lblDelay, txtDelay, btnSaveSettings
+        card.Controls.AddRange(new Control[]
+        {
+            lblBatchSize, txtBatchSize, lblBatchHint,
+            lblDelay, txtDelay, lblDelayHint,
+            divider, btnSaveSettings
         });
+
+        page.Controls.AddRange(new Control[] { lblTitle, card });
     }
 
-    private Button CreateButton(string text, int left)
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  TAB: REPLY-TO ACCOUNTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private void BuildReplyToTab(TabPage page)
     {
-        return new Button
+        page.Padding = new Padding(16);
+
+        var lblTitle = MakeSectionLabel("Reply-To Accounts", new Point(0, 0));
+
+        var infoLabel = new Label
+        {
+            Text = "Save reply-to addresses here. On the Send Mail tab you can pick one from a dropdown — no typing needed.",
+            Location = new Point(0, 44),
+            Size = new Size(980, 22),
+            Font = new Font("Segoe UI", 10),
+            ForeColor = Color.FromArgb(108, 117, 125)
+        };
+
+        listViewReplyTo = new ListView
+        {
+            Location = new Point(0, 80),
+            Size = new Size(980, 420),
+            View = View.Details,
+            FullRowSelect = true,
+            GridLines = true,
+            Font = new Font("Segoe UI", 10),
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        listViewReplyTo.Columns.Add("Label / Name", 320);
+        listViewReplyTo.Columns.Add("Email Address", 400);
+        listViewReplyTo.Columns.Add("Added", 140);
+
+        var btnPanel = new Panel
+        {
+            Location = new Point(0, 514),
+            Size = new Size(980, 50),
+            BackColor = Color.White
+        };
+
+        btnAddReplyTo    = MakeTabButton("+ Add Account", 0);
+        btnEditReplyTo   = MakeTabButton("✏ Edit", 160);
+        btnDeleteReplyTo = MakeTabButton("🗑 Delete", 290, Color.FromArgb(220, 53, 69));
+        btnRefreshReplyTo = MakeTabButton("⟳ Refresh", 420);
+
+        btnAddReplyTo.Click    += BtnAddReplyTo_Click;
+        btnEditReplyTo.Click   += BtnEditReplyTo_Click;
+        btnDeleteReplyTo.Click += BtnDeleteReplyTo_Click;
+        btnRefreshReplyTo.Click += async (s, e) => await LoadReplyToAccounts();
+
+        btnPanel.Controls.AddRange(new Control[] { btnAddReplyTo, btnEditReplyTo, btnDeleteReplyTo, btnRefreshReplyTo });
+
+        page.Controls.AddRange(new Control[] { lblTitle, infoLabel, listViewReplyTo, btnPanel });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  HELPERS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private Label MakeSectionLabel(string text, Point location)
+    {
+        return new Label
+        {
+            Text = text,
+            Font = new Font("Segoe UI", 14, FontStyle.Bold),
+            ForeColor = Color.FromArgb(33, 37, 41),
+            AutoSize = true,
+            Location = location
+        };
+    }
+
+    private Button MakeTabButton(string text, int left, Color? color = null)
+    {
+        var btn = new Button
         {
             Text = text,
             Location = new Point(left, 5),
-            Size = new Size(140, 40),
-            BackColor = Color.FromArgb(13, 110, 253),
+            Size = new Size(148, 38),
+            BackColor = color ?? Color.FromArgb(13, 110, 253),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            Font = new Font("Segoe UI", 9, FontStyle.Bold),
             Cursor = Cursors.Hand
         };
+        btn.FlatAppearance.BorderSize = 0;
+        return btn;
     }
 
-    private async void LoadData()
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  DATA LOADING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private async void LoadAllData()
     {
         await LoadIndustries();
+        await LoadRecipients();
+        LoadAccounts();
+        await LoadIndustriesForTab();
         await LoadSettings();
+        await LoadReplyToAccounts();
     }
 
     private async Task LoadIndustries()
+    {
+        _allIndustries = await _dbService.Industries.Find(_ => true).ToListAsync();
+
+        cmbIndustryFilter.Items.Clear();
+        cmbIndustryFilter.Items.Add("All Industries");
+        foreach (var industry in _allIndustries)
+            cmbIndustryFilter.Items.Add(industry.Name);
+
+        if (cmbIndustryFilter.Items.Count > 0)
+            cmbIndustryFilter.SelectedIndex = 0;
+    }
+
+    private async Task LoadRecipients()
+    {
+        _allRecipients = await _dbService.Recipients.Find(_ => true).ToListAsync();
+        FilterRecipients();
+    }
+
+    private void FilterRecipients()
+    {
+        listViewRecipients.Items.Clear();
+
+        var selectedIndustry = cmbIndustryFilter.SelectedItem?.ToString();
+        var searchText = txtSearch.Text.ToLower();
+
+        var filtered = _allRecipients.AsEnumerable();
+
+        if (selectedIndustry != "All Industries" && !string.IsNullOrEmpty(selectedIndustry))
+        {
+            var industry = _allIndustries.FirstOrDefault(i => i.Name == selectedIndustry);
+            if (industry != null && !string.IsNullOrEmpty(industry.Id))
+                filtered = filtered.Where(r => r.Industries.Contains(industry.Id));
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            filtered = filtered.Where(r =>
+                r.Email.ToLower().Contains(searchText) ||
+                (r.Name?.ToLower().Contains(searchText) ?? false));
+        }
+
+        foreach (var recipient in filtered)
+        {
+            var item = new ListViewItem(recipient.Email);
+            item.SubItems.Add(recipient.Name ?? "");
+            item.SubItems.Add(string.Join(", ", ResolveIndustryNames(recipient.Industries)));
+            item.SubItems.Add(recipient.IsSent ? "Sent" : "Unsent");
+            item.SubItems.Add(recipient.CreatedAt.ToLocalTime().ToString("d"));
+            item.Tag = recipient;
+            listViewRecipients.Items.Add(item);
+        }
+    }
+
+    private List<string> ResolveIndustryNames(List<string> industryIds)
+    {
+        var names = new List<string>();
+        foreach (var id in industryIds)
+        {
+            var ind = _allIndustries.FirstOrDefault(i => i.Id == id);
+            names.Add(ind?.Name ?? id);
+        }
+        return names;
+    }
+
+    private void LoadAccounts()
+    {
+        listViewAccounts.Items.Clear();
+        _accounts = _accountService.GetAllAccounts();
+
+        if (_accounts.Count == 0)
+        {
+            lblAccountStatus.Text = "⚠  No Outlook accounts found. Make sure Outlook is open and configured.";
+            lblAccountStatus.ForeColor = Color.FromArgb(220, 53, 69);
+        }
+        else if (_accounts.Count == 1)
+        {
+            lblAccountStatus.Text = "📧  1 account configured — emails will be sent via this account.";
+            lblAccountStatus.ForeColor = Color.FromArgb(13, 110, 253);
+        }
+        else
+        {
+            lblAccountStatus.Text = $"🔄  {_accounts.Count} accounts configured — round-robin rotation will be used.";
+            lblAccountStatus.ForeColor = Color.FromArgb(25, 135, 84);
+        }
+
+        int index = 1;
+        foreach (var account in _accounts)
+        {
+            var item = new ListViewItem(index.ToString());
+            item.SubItems.Add(account.AccountName);
+            item.SubItems.Add(account.SmtpAddress);
+            item.SubItems.Add(account.AccountType);
+            item.SubItems.Add(index == 1 ? "Primary (1st)" : $"Rotation #{index}");
+            item.Tag = account;
+            if (index % 2 == 0) item.BackColor = Color.FromArgb(248, 249, 250);
+            listViewAccounts.Items.Add(item);
+            index++;
+        }
+    }
+
+    private async Task LoadIndustriesForTab()
     {
         listViewIndustries.Items.Clear();
         _industries = await _dbService.Industries.Find(_ => true).ToListAsync();
@@ -190,12 +675,70 @@ public partial class SettingsControl : UserControl
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  RECIPIENTS EVENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private void BtnAddRecipient_Click(object? sender, EventArgs e)
+    {
+        var editorForm = new RecipientEditorForm(_dbService, null);
+        if (editorForm.ShowDialog() == DialogResult.OK)
+            _ = LoadRecipients();
+    }
+
+    private void BtnEditRecipient_Click(object? sender, EventArgs e)
+    {
+        if (listViewRecipients.SelectedItems.Count == 0)
+        {
+            MessageBox.Show("Please select a recipient to edit.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        var recipient = listViewRecipients.SelectedItems[0].Tag as Recipient;
+        if (recipient != null)
+        {
+            var editorForm = new RecipientEditorForm(_dbService, recipient);
+            if (editorForm.ShowDialog() == DialogResult.OK)
+                _ = LoadRecipients();
+        }
+    }
+
+    private async void BtnDeleteRecipient_Click(object? sender, EventArgs e)
+    {
+        if (listViewRecipients.SelectedItems.Count == 0)
+        {
+            MessageBox.Show("Please select a recipient to delete.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        var result = MessageBox.Show("Are you sure you want to delete this recipient?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+        if (result == DialogResult.Yes)
+        {
+            var recipient = listViewRecipients.SelectedItems[0].Tag as Recipient;
+            if (recipient != null && !string.IsNullOrEmpty(recipient.Id))
+            {
+                await _dbService.Recipients.DeleteOneAsync(r => r.Id == recipient.Id);
+                await LoadRecipients();
+            }
+        }
+    }
+
+    private void BtnImportRecipients_Click(object? sender, EventArgs e)
+    {
+        var importForm = new ImportRecipientsForm(_dbService);
+        if (importForm.ShowDialog() == DialogResult.OK)
+            _ = LoadRecipients();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  INDUSTRY EVENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
     private void BtnAddIndustry_Click(object? sender, EventArgs e)
     {
         var editorForm = new IndustryEditorForm(_dbService, null);
         if (editorForm.ShowDialog() == DialogResult.OK)
         {
-            LoadData();
+            _ = LoadIndustriesForTab();
+            _ = LoadIndustries(); // also refresh recipient tab filter
         }
     }
 
@@ -206,14 +749,14 @@ public partial class SettingsControl : UserControl
             MessageBox.Show("Please select an industry to edit.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
-
         var industry = listViewIndustries.SelectedItems[0].Tag as Industry;
         if (industry != null)
         {
             var editorForm = new IndustryEditorForm(_dbService, industry);
             if (editorForm.ShowDialog() == DialogResult.OK)
             {
-                LoadData();
+                _ = LoadIndustriesForTab();
+                _ = LoadIndustries();
             }
         }
     }
@@ -225,7 +768,6 @@ public partial class SettingsControl : UserControl
             MessageBox.Show("Please select an industry to delete.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
-
         var result = MessageBox.Show("Are you sure you want to delete this industry?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
         if (result == DialogResult.Yes)
         {
@@ -233,10 +775,15 @@ public partial class SettingsControl : UserControl
             if (industry != null && !string.IsNullOrEmpty(industry.Id))
             {
                 await _dbService.Industries.DeleteOneAsync(i => i.Id == industry.Id);
-                LoadData();
+                await LoadIndustriesForTab();
+                await LoadIndustries();
             }
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  APP SETTINGS EVENTS
+    // ═══════════════════════════════════════════════════════════════════════════
 
     private async void BtnSaveSettings_Click(object? sender, EventArgs e)
     {
@@ -271,10 +818,179 @@ public partial class SettingsControl : UserControl
                 .Set(s => s.BatchSize, batchSize)
                 .Set(s => s.DelayBetweenBatches, delay)
                 .Set(s => s.UpdatedAt, DateTime.UtcNow);
-
             await _dbService.Settings.UpdateOneAsync(filter, update);
         }
 
         MessageBox.Show("Settings saved successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  REPLY-TO ACCOUNTS  –  DATA & EVENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private async Task LoadReplyToAccounts()
+    {
+        listViewReplyTo.Items.Clear();
+        _replyToAccounts = await _dbService.ReplyToAccounts.Find(_ => true).ToListAsync();
+
+        foreach (var account in _replyToAccounts)
+        {
+            var item = new ListViewItem(account.Label);
+            item.SubItems.Add(account.Email);
+            item.SubItems.Add(account.CreatedAt.ToLocalTime().ToString("d"));
+            item.Tag = account;
+            listViewReplyTo.Items.Add(item);
+        }
+    }
+
+    private async void BtnAddReplyTo_Click(object? sender, EventArgs e)
+    {
+        string label = "";
+        string email = "";
+
+        using var form = new Form
+        {
+            Text = "Add Reply-To Account",
+            Size = new Size(460, 220),
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false, MinimizeBox = false,
+            Font = new Font("Segoe UI", 10)
+        };
+
+        var lblL = new Label { Text = "Label / Name:", Location = new Point(16, 20), Size = new Size(120, 24) };
+        var txtL = new TextBox { Location = new Point(146, 18), Size = new Size(280, 28), PlaceholderText = "e.g. Support Team" };
+
+        var lblE = new Label { Text = "Email Address:", Location = new Point(16, 60), Size = new Size(120, 24) };
+        var txtE = new TextBox { Location = new Point(146, 58), Size = new Size(280, 28), PlaceholderText = "e.g. support@company.com" };
+
+        var btnSave = new Button
+        {
+            Text = "Save", DialogResult = DialogResult.OK,
+            Location = new Point(240, 110), Size = new Size(90, 34),
+            BackColor = Color.FromArgb(25, 135, 84), ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
+        };
+        btnSave.FlatAppearance.BorderSize = 0;
+
+        var btnCancel = new Button
+        {
+            Text = "Cancel", DialogResult = DialogResult.Cancel,
+            Location = new Point(340, 110), Size = new Size(90, 34),
+            FlatStyle = FlatStyle.Flat
+        };
+
+        form.Controls.AddRange(new Control[] { lblL, txtL, lblE, txtE, btnSave, btnCancel });
+        form.AcceptButton = btnSave;
+        form.CancelButton = btnCancel;
+
+        if (form.ShowDialog(this) == DialogResult.OK)
+        {
+            label = txtL.Text.Trim();
+            email = txtE.Text.Trim();
+
+            if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(email) || !email.Contains('@'))
+            {
+                MessageBox.Show("Please enter a valid label and email address.", "Validation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var account = new ReplyToAccount { Label = label, Email = email };
+            await _dbService.ReplyToAccounts.InsertOneAsync(account);
+            await LoadReplyToAccounts();
+        }
+    }
+
+    private async void BtnEditReplyTo_Click(object? sender, EventArgs e)
+    {
+        if (listViewReplyTo.SelectedItems.Count == 0)
+        {
+            MessageBox.Show("Please select an account to edit.", "No Selection",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var account = listViewReplyTo.SelectedItems[0].Tag as ReplyToAccount;
+        if (account == null) return;
+
+        using var form = new Form
+        {
+            Text = "Edit Reply-To Account",
+            Size = new Size(460, 220),
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false, MinimizeBox = false,
+            Font = new Font("Segoe UI", 10)
+        };
+
+        var lblL = new Label { Text = "Label / Name:", Location = new Point(16, 20), Size = new Size(120, 24) };
+        var txtL = new TextBox { Location = new Point(146, 18), Size = new Size(280, 28), Text = account.Label };
+
+        var lblE = new Label { Text = "Email Address:", Location = new Point(16, 60), Size = new Size(120, 24) };
+        var txtE = new TextBox { Location = new Point(146, 58), Size = new Size(280, 28), Text = account.Email };
+
+        var btnSave = new Button
+        {
+            Text = "Save", DialogResult = DialogResult.OK,
+            Location = new Point(240, 110), Size = new Size(90, 34),
+            BackColor = Color.FromArgb(25, 135, 84), ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
+        };
+        btnSave.FlatAppearance.BorderSize = 0;
+
+        var btnCancel = new Button
+        {
+            Text = "Cancel", DialogResult = DialogResult.Cancel,
+            Location = new Point(340, 110), Size = new Size(90, 34),
+            FlatStyle = FlatStyle.Flat
+        };
+
+        form.Controls.AddRange(new Control[] { lblL, txtL, lblE, txtE, btnSave, btnCancel });
+        form.AcceptButton = btnSave;
+        form.CancelButton = btnCancel;
+
+        if (form.ShowDialog(this) == DialogResult.OK)
+        {
+            var label = txtL.Text.Trim();
+            var email = txtE.Text.Trim();
+
+            if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(email) || !email.Contains('@'))
+            {
+                MessageBox.Show("Please enter a valid label and email address.", "Validation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var filter = Builders<ReplyToAccount>.Filter.Eq(r => r.Id, account.Id);
+            var update = Builders<ReplyToAccount>.Update
+                .Set(r => r.Label, label)
+                .Set(r => r.Email, email);
+            await _dbService.ReplyToAccounts.UpdateOneAsync(filter, update);
+            await LoadReplyToAccounts();
+        }
+    }
+
+    private async void BtnDeleteReplyTo_Click(object? sender, EventArgs e)
+    {
+        if (listViewReplyTo.SelectedItems.Count == 0)
+        {
+            MessageBox.Show("Please select an account to delete.", "No Selection",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var account = listViewReplyTo.SelectedItems[0].Tag as ReplyToAccount;
+        if (account == null || string.IsNullOrEmpty(account.Id)) return;
+
+        var result = MessageBox.Show(
+            $"Delete reply-to account '{account.Label}' ({account.Email})?",
+            "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+        if (result == DialogResult.Yes)
+        {
+            await _dbService.ReplyToAccounts.DeleteOneAsync(r => r.Id == account.Id);
+            await LoadReplyToAccounts();
+        }
     }
 }

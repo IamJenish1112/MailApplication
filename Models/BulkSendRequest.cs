@@ -40,4 +40,11 @@ public class BulkSendRequest
     /// If empty, all available accounts will be used.
     /// </summary>
     public List<string> RotationAccountSmtps { get; set; } = new();
+
+    /// <summary>
+    /// Optional Reply-To email address for this campaign.
+    /// When set, recipients who click "Reply" will send their reply to this address
+    /// instead of the sender account's address.
+    /// </summary>
+    public string? ReplyToEmail { get; set; }
 }

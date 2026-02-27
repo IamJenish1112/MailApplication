@@ -20,4 +20,5 @@ public class MongoDbService
     public IMongoCollection<AppSettings> Settings => _database.GetCollection<AppSettings>("settings");
     public IMongoCollection<EmailTemplate> EmailTemplates => _database.GetCollection<EmailTemplate>("emailTemplates");
     public IMongoCollection<TemplateImage> TemplateImages => _database.GetCollection<TemplateImage>("templateImages");
+    public IMongoCollection<ReplyToAccount> ReplyToAccounts => _database.GetCollection<ReplyToAccount>("replyToAccounts");
 }
