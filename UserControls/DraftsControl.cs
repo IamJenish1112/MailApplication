@@ -56,7 +56,7 @@ public partial class DraftsControl : UserControl
             Font = new Font("Segoe UI", 10)
         };
 
-        tabAppDrafts = new TabPage("Application Drafts");
+        tabAppDrafts = new TabPage("Application Drafts (In DB)");
         tabOutlookDrafts = new TabPage("Outlook Drafts");
 
         listViewApp = CreateListView();
@@ -76,7 +76,7 @@ public partial class DraftsControl : UserControl
             Padding = new Padding(0, 10, 0, 0)
         };
 
-        btnCreateNew = CreateButton("Create New", 0);
+        btnCreateNew = CreateButton("Create New (Compose)", 0);
         btnEdit = CreateButton("Edit", 140);
         btnDelete = CreateButton("Delete", 280);
         btnPreview = CreateButton("Preview", 420);
@@ -97,8 +97,8 @@ public partial class DraftsControl : UserControl
         buttonPanel.Controls.AddRange(new Control[] { btnCreateNew, btnEdit, btnDelete, btnPreview, btnRefresh });
 
         this.Controls.Add(titleLabel);
-        this.Controls.Add(tabControl);
         this.Controls.Add(buttonPanel);
+        this.Controls.Add(tabControl);
     }
 
     private ListView CreateListView()

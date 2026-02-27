@@ -11,8 +11,6 @@ public partial class MainForm : Form
     private Button btnSendMail;
     private Button btnInbox;
     private Button btnOutbox;
-    private Button btnRecipients;
-    private Button btnAccounts;
     private Button btnSettings;
     private Label lblTitle;
 
@@ -63,52 +61,58 @@ public partial class MainForm : Form
         this.BackColor = Color.FromArgb(248, 249, 250);
         this.MinimumSize = new Size(1200, 700);
 
+        // ── Sidebar ──────────────────────────────────────────────────────────
         sidebarPanel = new Panel
         {
             Dock = DockStyle.Left,
-            Width = 250,
-            BackColor = Color.White,
+            Width = 240,
+            BackColor = Color.FromArgb(24, 28, 36),
             Padding = new Padding(0)
+        };
+
+        // App logo / title area
+        var logoPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 90,
+            BackColor = Color.FromArgb(13, 110, 253)
         };
 
         lblTitle = new Label
         {
-            Text = "BULK MAIL SENDER",
-            Font = new Font("Segoe UI", 14, FontStyle.Bold),
-            ForeColor = Color.FromArgb(52, 58, 64),
+            Text = "BULK MAIL\nSENDER",
+            Font = new Font("Segoe UI", 13, FontStyle.Bold),
+            ForeColor = Color.White,
             AutoSize = false,
-            Height = 80,
-            Dock = DockStyle.Top,
-            TextAlign = ContentAlignment.MiddleCenter,
-            BackColor = Color.FromArgb(233, 236, 239)
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleCenter
         };
 
-        sidebarPanel.Controls.Add(lblTitle);
+        logoPanel.Controls.Add(lblTitle);
+        sidebarPanel.Controls.Add(logoPanel);
 
-        int buttonTop = 90;
-        btnDrafts = CreateMenuButton("Drafts", buttonTop);
-        btnSendMail = CreateMenuButton("Send Mail", buttonTop + 60);
-        btnInbox = CreateMenuButton("Inbox", buttonTop + 120);
-        btnOutbox = CreateMenuButton("Outbox", buttonTop + 180);
-        btnRecipients = CreateMenuButton("Recipient List", buttonTop + 240);
-        btnAccounts = CreateMenuButton("Accounts", buttonTop + 300);
-        btnSettings = CreateMenuButton("Settings", buttonTop + 360);
+        // Nav buttons (top-to-bottom after header)
+        int top = 100;
+        btnDrafts   = CreateMenuButton("📋  Drafts",    top);          top += 56;
+        btnSendMail = CreateMenuButton("✉  Send Mail",  top);          top += 56;
+        btnInbox    = CreateMenuButton("📥  Inbox",      top);          top += 56;
+        btnOutbox   = CreateMenuButton("📤  Sent",     top);          top += 56;
+        btnSettings = CreateMenuButton("⚙  Settings",   top);
 
-        btnDrafts.Click += (s, e) => LoadDraftsTab();
+        btnDrafts.Click   += (s, e) => LoadDraftsTab();
         btnSendMail.Click += (s, e) => LoadSendMailTab();
-        btnInbox.Click += (s, e) => LoadInboxTab();
-        btnOutbox.Click += (s, e) => LoadOutboxTab();
-        btnRecipients.Click += (s, e) => LoadRecipientsTab();
-        btnAccounts.Click += (s, e) => LoadAccountsTab();
+        btnInbox.Click    += (s, e) => LoadInboxTab();
+        btnOutbox.Click   += (s, e) => LoadOutboxTab();
         btnSettings.Click += (s, e) => LoadSettingsTab();
 
-        sidebarPanel.Controls.AddRange(new Control[] { btnDrafts, btnSendMail, btnInbox, btnOutbox, btnRecipients, btnAccounts, btnSettings });
+        sidebarPanel.Controls.AddRange(new Control[] { btnDrafts, btnSendMail, btnInbox, btnOutbox, btnSettings });
 
+        // ── Content area ─────────────────────────────────────────────────────
         contentPanel = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(248, 249, 250),
-            Padding = new Padding(20),
+            Padding = new Padding(10),
             AutoScroll = true
         };
 
@@ -122,29 +126,29 @@ public partial class MainForm : Form
         {
             Text = text,
             Font = new Font("Segoe UI", 11, FontStyle.Regular),
-            ForeColor = Color.FromArgb(73, 80, 87),
-            BackColor = Color.White,
+            ForeColor = Color.FromArgb(180, 190, 210),
+            BackColor = Color.FromArgb(24, 28, 36),
             FlatStyle = FlatStyle.Flat,
             TextAlign = ContentAlignment.MiddleLeft,
-            Padding = new Padding(20, 0, 0, 0),
-            Size = new Size(250, 50),
+            Padding = new Padding(22, 0, 0, 0),
+            Size = new Size(240, 52),
             Location = new Point(0, top),
             Cursor = Cursors.Hand
         };
 
         btn.FlatAppearance.BorderSize = 0;
-        btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(233, 236, 239);
-        btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(222, 226, 230);
+        btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(35, 42, 55);
+        btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(13, 110, 253);
 
         btn.MouseEnter += (s, e) =>
         {
             if (btn != _activeButton)
-                btn.BackColor = Color.FromArgb(233, 236, 239);
+                btn.BackColor = Color.FromArgb(35, 42, 55);
         };
         btn.MouseLeave += (s, e) =>
         {
             if (btn != _activeButton)
-                btn.BackColor = Color.White;
+                btn.BackColor = Color.FromArgb(24, 28, 36);
         };
 
         return btn;
@@ -156,8 +160,8 @@ public partial class MainForm : Form
         {
             if (control is Button btn)
             {
-                btn.BackColor = Color.White;
-                btn.ForeColor = Color.FromArgb(73, 80, 87);
+                btn.BackColor = Color.FromArgb(24, 28, 36);
+                btn.ForeColor = Color.FromArgb(180, 190, 210);
                 btn.Font = new Font("Segoe UI", 11, FontStyle.Regular);
             }
         }
@@ -201,21 +205,9 @@ public partial class MainForm : Form
         LoadUserControl(outboxControl, btnOutbox);
     }
 
-    private void LoadRecipientsTab()
-    {
-        var recipientsControl = new RecipientsControl(_dbService);
-        LoadUserControl(recipientsControl, btnRecipients);
-    }
-
-    private void LoadAccountsTab()
-    {
-        var accountsControl = new AccountsControl(_accountService);
-        LoadUserControl(accountsControl, btnAccounts);
-    }
-
     private void LoadSettingsTab()
     {
-        var settingsControl = new SettingsControl(_dbService);
+        var settingsControl = new SettingsControl(_dbService, _accountService);
         LoadUserControl(settingsControl, btnSettings);
     }
 

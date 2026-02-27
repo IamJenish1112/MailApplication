@@ -98,11 +98,11 @@ public partial class RecipientsControl : UserControl
             BackColor = Color.White
         };
 
-        btnAddRecipient = CreateButton("Add Recipient", 0);
-        btnEditRecipient = CreateButton("Edit", 160);
-        btnDeleteRecipient = CreateButton("Delete", 300);
-        btnImport = CreateButton("Import from File", 470);
-        btnRefresh = CreateButton("Refresh", 650);
+        btnAddRecipient = CreateButton("Add Single Recipient", 0);
+        btnEditRecipient = CreateButton("Edit", 240);
+        btnDeleteRecipient = CreateButton("Delete", 480);
+        btnImport = CreateButton("Add/Import Multiple Recipients", 720);
+        btnRefresh = CreateButton("Refresh", 960);
 
         btnAddRecipient.Click += BtnAddRecipient_Click;
         btnEditRecipient.Click += BtnEditRecipient_Click;
