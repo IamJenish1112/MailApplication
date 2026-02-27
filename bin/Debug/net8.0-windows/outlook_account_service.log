@@ -345,3 +345,18 @@
 [2026-02-27 16:41:17.493] [OutlookAccountService] Caching 2 Outlook account(s)...
 [2026-02-27 16:41:17.530] [OutlookAccountService]   ✓ Cached Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
 [2026-02-27 16:41:17.536] [OutlookAccountService]   ✓ Cached Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-27 16:48:44.437] [OutlookAccountService] OutlookAccountService disposed. All COM objects released.
+[2026-02-27 16:49:05.037] [OutlookAccountService] Created new Outlook instance.
+[2026-02-27 16:49:05.161] [OutlookAccountService] Caching 2 Outlook account(s)...
+[2026-02-27 16:49:05.177] [OutlookAccountService]   ✓ Cached Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
+[2026-02-27 16:49:05.182] [OutlookAccountService]   ✓ Cached Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-27 16:51:59.279] [OutlookAccountService] SendUsingAccount set to: sorathiyajenish1112@gmail.com
+[2026-02-27 16:51:59.301] [OutlookAccountService] Reply-To set to: iceelacademy@gmail.com
+[2026-02-27 16:51:59.332] [OutlookAccountService] ✓ Email SENT via [sorathiyajenish1112@gmail.com] to 1 recipient(s). ReplyTo=iceelacademy@gmail.com
+[2026-02-27 16:52:47.922] [OutlookAccountService] SendUsingAccount set to: sorathiyajenish1112@gmail.com
+[2026-02-27 16:52:47.938] [OutlookAccountService] ✓ Email SENT via [sorathiyajenish1112@gmail.com] to 1 recipient(s). ReplyTo=(none)
+[2026-02-27 16:53:38.207] [OutlookAccountService] SendUsingAccount set to: sorathiyajenish1112@gmail.com
+[2026-02-27 16:53:38.229] [OutlookAccountService] ✓ Email SENT via [sorathiyajenish1112@gmail.com] to 1 recipient(s). ReplyTo=(none)
+[2026-02-27 16:53:43.283] [OutlookAccountService] SendUsingAccount set to: advahc1@yahoo.com
+[2026-02-27 16:53:43.310] [OutlookAccountService] ✓ Email SENT via [advahc1@yahoo.com] to 1 recipient(s). ReplyTo=(none)
+[2026-02-27 16:59:42.813] [OutlookAccountService] OutlookAccountService disposed. All COM objects released.

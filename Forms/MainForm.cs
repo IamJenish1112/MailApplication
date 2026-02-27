@@ -93,7 +93,7 @@ public partial class MainForm : Form
 
         // Nav buttons (top-to-bottom after header)
         int top = 100;
-        btnDrafts   = CreateMenuButton("📋  Drafts",    top);          top += 56;
+        btnDrafts   = CreateMenuButton("📋  Compose & Drafts",    top);          top += 56;
         btnSendMail = CreateMenuButton("✉  Send Mail",  top);          top += 56;
         btnInbox    = CreateMenuButton("📥  Inbox",      top);          top += 56;
         btnOutbox   = CreateMenuButton("📤  Sent",     top);          top += 56;

@@ -41,6 +41,14 @@ public partial class SettingsControl : UserControl
     private Label lblAccountStatus;
     private List<EmailAccount> _accounts = new();
 
+    // ── Reply-To Accounts tab ────────────────────────────────────────────────
+    private ListView listViewReplyTo;
+    private Button btnAddReplyTo;
+    private Button btnEditReplyTo;
+    private Button btnDeleteReplyTo;
+    private Button btnRefreshReplyTo;
+    private List<ReplyToAccount> _replyToAccounts = new();
+
     public SettingsControl(MongoDbService dbService, OutlookAccountService? accountService = null)
     {
         _dbService = dbService;
@@ -91,17 +99,19 @@ public partial class SettingsControl : UserControl
         tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
         tabControl.DrawItem += TabControl_DrawItem;
 
-        var tabRecipients = new TabPage { Text = "  Recipients  ", BackColor = Color.White };
-        var tabAccounts   = new TabPage { Text = "  Outgoing SMTP Emails  ",   BackColor = Color.White };
-        var tabIndustries = new TabPage { Text = "  Industry Management  ", BackColor = Color.White };
-        var tabAppSettings = new TabPage { Text = "  Campaign Settings  ", BackColor = Color.White };
+        var tabRecipients  = new TabPage { Text = "  Recipients  ",          BackColor = Color.White };
+        var tabAccounts    = new TabPage { Text = "  Outgoing SMTP Emails  ",  BackColor = Color.White };
+        var tabIndustries  = new TabPage { Text = "  Industry Management  ",  BackColor = Color.White };
+        var tabAppSettings = new TabPage { Text = "  Campaign Settings  ",    BackColor = Color.White };
+        var tabReplyTo     = new TabPage { Text = "  Reply-To Accounts  ",    BackColor = Color.White };
 
         BuildRecipientsTab(tabRecipients);
         BuildAccountsTab(tabAccounts);
         BuildIndustriesTab(tabIndustries);
         BuildAppSettingsTab(tabAppSettings);
+        BuildReplyToTab(tabReplyTo);
 
-        tabControl.TabPages.AddRange(new[] { tabRecipients, tabAccounts, tabIndustries, tabAppSettings });
+        tabControl.TabPages.AddRange(new[] { tabRecipients, tabAccounts, tabIndustries, tabAppSettings, tabReplyTo });
 
         this.Controls.Add(tabControl);
         this.Controls.Add(headerPanel);
@@ -438,6 +448,61 @@ public partial class SettingsControl : UserControl
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    //  TAB: REPLY-TO ACCOUNTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private void BuildReplyToTab(TabPage page)
+    {
+        page.Padding = new Padding(16);
+
+        var lblTitle = MakeSectionLabel("Reply-To Accounts", new Point(0, 0));
+
+        var infoLabel = new Label
+        {
+            Text = "Save reply-to addresses here. On the Send Mail tab you can pick one from a dropdown — no typing needed.",
+            Location = new Point(0, 44),
+            Size = new Size(980, 22),
+            Font = new Font("Segoe UI", 10),
+            ForeColor = Color.FromArgb(108, 117, 125)
+        };
+
+        listViewReplyTo = new ListView
+        {
+            Location = new Point(0, 80),
+            Size = new Size(980, 420),
+            View = View.Details,
+            FullRowSelect = true,
+            GridLines = true,
+            Font = new Font("Segoe UI", 10),
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        listViewReplyTo.Columns.Add("Label / Name", 320);
+        listViewReplyTo.Columns.Add("Email Address", 400);
+        listViewReplyTo.Columns.Add("Added", 140);
+
+        var btnPanel = new Panel
+        {
+            Location = new Point(0, 514),
+            Size = new Size(980, 50),
+            BackColor = Color.White
+        };
+
+        btnAddReplyTo    = MakeTabButton("+ Add Account", 0);
+        btnEditReplyTo   = MakeTabButton("✏ Edit", 160);
+        btnDeleteReplyTo = MakeTabButton("🗑 Delete", 290, Color.FromArgb(220, 53, 69));
+        btnRefreshReplyTo = MakeTabButton("⟳ Refresh", 420);
+
+        btnAddReplyTo.Click    += BtnAddReplyTo_Click;
+        btnEditReplyTo.Click   += BtnEditReplyTo_Click;
+        btnDeleteReplyTo.Click += BtnDeleteReplyTo_Click;
+        btnRefreshReplyTo.Click += async (s, e) => await LoadReplyToAccounts();
+
+        btnPanel.Controls.AddRange(new Control[] { btnAddReplyTo, btnEditReplyTo, btnDeleteReplyTo, btnRefreshReplyTo });
+
+        page.Controls.AddRange(new Control[] { lblTitle, infoLabel, listViewReplyTo, btnPanel });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     //  HELPERS
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -481,6 +546,7 @@ public partial class SettingsControl : UserControl
         LoadAccounts();
         await LoadIndustriesForTab();
         await LoadSettings();
+        await LoadReplyToAccounts();
     }
 
     private async Task LoadIndustries()
@@ -756,5 +822,175 @@ public partial class SettingsControl : UserControl
         }
 
         MessageBox.Show("Settings saved successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  REPLY-TO ACCOUNTS  –  DATA & EVENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private async Task LoadReplyToAccounts()
+    {
+        listViewReplyTo.Items.Clear();
+        _replyToAccounts = await _dbService.ReplyToAccounts.Find(_ => true).ToListAsync();
+
+        foreach (var account in _replyToAccounts)
+        {
+            var item = new ListViewItem(account.Label);
+            item.SubItems.Add(account.Email);
+            item.SubItems.Add(account.CreatedAt.ToLocalTime().ToString("d"));
+            item.Tag = account;
+            listViewReplyTo.Items.Add(item);
+        }
+    }
+
+    private async void BtnAddReplyTo_Click(object? sender, EventArgs e)
+    {
+        string label = "";
+        string email = "";
+
+        using var form = new Form
+        {
+            Text = "Add Reply-To Account",
+            Size = new Size(460, 220),
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false, MinimizeBox = false,
+            Font = new Font("Segoe UI", 10)
+        };
+
+        var lblL = new Label { Text = "Label / Name:", Location = new Point(16, 20), Size = new Size(120, 24) };
+        var txtL = new TextBox { Location = new Point(146, 18), Size = new Size(280, 28), PlaceholderText = "e.g. Support Team" };
+
+        var lblE = new Label { Text = "Email Address:", Location = new Point(16, 60), Size = new Size(120, 24) };
+        var txtE = new TextBox { Location = new Point(146, 58), Size = new Size(280, 28), PlaceholderText = "e.g. support@company.com" };
+
+        var btnSave = new Button
+        {
+            Text = "Save", DialogResult = DialogResult.OK,
+            Location = new Point(240, 110), Size = new Size(90, 34),
+            BackColor = Color.FromArgb(25, 135, 84), ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
+        };
+        btnSave.FlatAppearance.BorderSize = 0;
+
+        var btnCancel = new Button
+        {
+            Text = "Cancel", DialogResult = DialogResult.Cancel,
+            Location = new Point(340, 110), Size = new Size(90, 34),
+            FlatStyle = FlatStyle.Flat
+        };
+
+        form.Controls.AddRange(new Control[] { lblL, txtL, lblE, txtE, btnSave, btnCancel });
+        form.AcceptButton = btnSave;
+        form.CancelButton = btnCancel;
+
+        if (form.ShowDialog(this) == DialogResult.OK)
+        {
+            label = txtL.Text.Trim();
+            email = txtE.Text.Trim();
+
+            if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(email) || !email.Contains('@'))
+            {
+                MessageBox.Show("Please enter a valid label and email address.", "Validation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var account = new ReplyToAccount { Label = label, Email = email };
+            await _dbService.ReplyToAccounts.InsertOneAsync(account);
+            await LoadReplyToAccounts();
+        }
+    }
+
+    private async void BtnEditReplyTo_Click(object? sender, EventArgs e)
+    {
+        if (listViewReplyTo.SelectedItems.Count == 0)
+        {
+            MessageBox.Show("Please select an account to edit.", "No Selection",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var account = listViewReplyTo.SelectedItems[0].Tag as ReplyToAccount;
+        if (account == null) return;
+
+        using var form = new Form
+        {
+            Text = "Edit Reply-To Account",
+            Size = new Size(460, 220),
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false, MinimizeBox = false,
+            Font = new Font("Segoe UI", 10)
+        };
+
+        var lblL = new Label { Text = "Label / Name:", Location = new Point(16, 20), Size = new Size(120, 24) };
+        var txtL = new TextBox { Location = new Point(146, 18), Size = new Size(280, 28), Text = account.Label };
+
+        var lblE = new Label { Text = "Email Address:", Location = new Point(16, 60), Size = new Size(120, 24) };
+        var txtE = new TextBox { Location = new Point(146, 58), Size = new Size(280, 28), Text = account.Email };
+
+        var btnSave = new Button
+        {
+            Text = "Save", DialogResult = DialogResult.OK,
+            Location = new Point(240, 110), Size = new Size(90, 34),
+            BackColor = Color.FromArgb(25, 135, 84), ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
+        };
+        btnSave.FlatAppearance.BorderSize = 0;
+
+        var btnCancel = new Button
+        {
+            Text = "Cancel", DialogResult = DialogResult.Cancel,
+            Location = new Point(340, 110), Size = new Size(90, 34),
+            FlatStyle = FlatStyle.Flat
+        };
+
+        form.Controls.AddRange(new Control[] { lblL, txtL, lblE, txtE, btnSave, btnCancel });
+        form.AcceptButton = btnSave;
+        form.CancelButton = btnCancel;
+
+        if (form.ShowDialog(this) == DialogResult.OK)
+        {
+            var label = txtL.Text.Trim();
+            var email = txtE.Text.Trim();
+
+            if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(email) || !email.Contains('@'))
+            {
+                MessageBox.Show("Please enter a valid label and email address.", "Validation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var filter = Builders<ReplyToAccount>.Filter.Eq(r => r.Id, account.Id);
+            var update = Builders<ReplyToAccount>.Update
+                .Set(r => r.Label, label)
+                .Set(r => r.Email, email);
+            await _dbService.ReplyToAccounts.UpdateOneAsync(filter, update);
+            await LoadReplyToAccounts();
+        }
+    }
+
+    private async void BtnDeleteReplyTo_Click(object? sender, EventArgs e)
+    {
+        if (listViewReplyTo.SelectedItems.Count == 0)
+        {
+            MessageBox.Show("Please select an account to delete.", "No Selection",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var account = listViewReplyTo.SelectedItems[0].Tag as ReplyToAccount;
+        if (account == null || string.IsNullOrEmpty(account.Id)) return;
+
+        var result = MessageBox.Show(
+            $"Delete reply-to account '{account.Label}' ({account.Email})?",
+            "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+        if (result == DialogResult.Yes)
+        {
+            await _dbService.ReplyToAccounts.DeleteOneAsync(r => r.Id == account.Id);
+            await LoadReplyToAccounts();
+        }
     }
 }
