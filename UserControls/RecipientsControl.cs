@@ -99,9 +99,9 @@ public partial class RecipientsControl : UserControl
         };
 
         btnAddRecipient = CreateButton("Add Single Recipient", 0);
-        btnEditRecipient = CreateButton("Edit", 240);
-        btnDeleteRecipient = CreateButton("Delete", 480);
-        btnImport = CreateButton("Add/Import Multiple Recipients", 720);
+        btnImport = CreateButton("Add/Import Multiple Recipients", 240);
+        btnEditRecipient = CreateButton("Edit", 480);
+        btnDeleteRecipient = CreateButton("Delete", 720);
         btnRefresh = CreateButton("Refresh", 960);
 
         btnAddRecipient.Click += BtnAddRecipient_Click;

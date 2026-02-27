@@ -92,9 +92,9 @@ public partial class SettingsControl : UserControl
         tabControl.DrawItem += TabControl_DrawItem;
 
         var tabRecipients = new TabPage { Text = "  Recipients  ", BackColor = Color.White };
-        var tabAccounts   = new TabPage { Text = "  Accounts  ",   BackColor = Color.White };
+        var tabAccounts   = new TabPage { Text = "  Outgoing SMTP Emails  ",   BackColor = Color.White };
         var tabIndustries = new TabPage { Text = "  Industry Management  ", BackColor = Color.White };
-        var tabAppSettings = new TabPage { Text = "  App Settings  ", BackColor = Color.White };
+        var tabAppSettings = new TabPage { Text = "  Campaign Settings  ", BackColor = Color.White };
 
         BuildRecipientsTab(tabRecipients);
         BuildAccountsTab(tabAccounts);
@@ -209,11 +209,20 @@ public partial class SettingsControl : UserControl
             BackColor = Color.White
         };
 
-        btnAddRecipient      = MakeTabButton("+ Add Recipient", 0);
-        btnEditRecipient     = MakeTabButton("✏ Edit", 160);
-        btnDeleteRecipient   = MakeTabButton("🗑 Delete", 285, Color.FromArgb(220, 53, 69));
-        btnImportRecipients  = MakeTabButton("📂 Import File", 420);
-        btnRefreshRecipients = MakeTabButton("⟳ Refresh", 570);
+        btnAddRecipient     = MakeTabButton("+ Add Single Recipient", 0);
+        btnAddRecipient.Size = new Size(200, 38);
+
+        btnImportRecipients = MakeTabButton("📂 Add/Import Multiple Recipients", 210);
+        btnImportRecipients.Size = new Size(280, 38);
+
+        btnEditRecipient    = MakeTabButton("✏ Edit", 500);
+        btnEditRecipient.Size = new Size(120, 38);
+
+        btnDeleteRecipient  = MakeTabButton("🗑 Delete", 630, Color.FromArgb(220, 53, 69));
+        btnDeleteRecipient.Size = new Size(120, 38);
+
+        btnRefreshRecipients = MakeTabButton("⟳ Refresh", 760);
+        btnRefreshRecipients.Size = new Size(120, 38);
 
         btnAddRecipient.Click      += BtnAddRecipient_Click;
         btnEditRecipient.Click     += BtnEditRecipient_Click;
@@ -234,7 +243,7 @@ public partial class SettingsControl : UserControl
     {
         page.Padding = new Padding(16);
 
-        var lblTitle = MakeSectionLabel("Email Accounts", new Point(0, 0));
+        var lblTitle = MakeSectionLabel("Outgoing SMTP Email Accounts", new Point(0, 0));
 
         var infoLabel = new Label
         {
@@ -349,7 +358,7 @@ public partial class SettingsControl : UserControl
 
         var lblBatchSize = new Label
         {
-            Text = "Default Batch Size:",
+            Text = "Default BCC Count:",
             Location = new Point(20, 30),
             Size = new Size(180, 25),
             Font = new Font("Segoe UI", 10, FontStyle.Bold)
@@ -365,7 +374,7 @@ public partial class SettingsControl : UserControl
 
         var lblBatchHint = new Label
         {
-            Text = "Number of emails per batch",
+            Text = "Number of emails in BCC field",
             Location = new Point(340, 31),
             Size = new Size(200, 22),
             Font = new Font("Segoe UI", 9),
@@ -374,7 +383,7 @@ public partial class SettingsControl : UserControl
 
         var lblDelay = new Label
         {
-            Text = "Delay Between Batches:",
+            Text = "Delay Between Emails:",
             Location = new Point(20, 80),
             Size = new Size(180, 25),
             Font = new Font("Segoe UI", 10, FontStyle.Bold)
@@ -390,7 +399,7 @@ public partial class SettingsControl : UserControl
 
         var lblDelayHint = new Label
         {
-            Text = "Seconds to wait between batches",
+            Text = "Seconds to wait between emails",
             Location = new Point(340, 81),
             Size = new Size(200, 22),
             Font = new Font("Segoe UI", 9),
