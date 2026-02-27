@@ -207,3 +207,22 @@
 [2026-02-26 09:50:51.132] [OutlookAccountService]   ✓ Cached Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
 [2026-02-26 09:50:51.274] [OutlookAccountService]   ✓ Cached Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
 [2026-02-26 09:55:33.196] [OutlookAccountService] OutlookAccountService disposed. All COM objects released.
+[2026-02-26 10:11:46.462] [OutlookAccountService] Created new Outlook instance.
+[2026-02-26 10:11:46.824] [OutlookAccountService] Caching 2 Outlook account(s)...
+[2026-02-26 10:11:46.900] [OutlookAccountService]   ✓ Cached Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
+[2026-02-26 10:11:46.915] [OutlookAccountService]   ✓ Cached Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-26 10:12:23.182] [OutlookAccountService] SendUsingAccount set to: sorathiyajenish1112@gmail.com
+[2026-02-26 10:12:23.214] [OutlookAccountService] Reply-To set to: sorathiyajenish1112@gmail.com
+[2026-02-26 10:12:23.255] [OutlookAccountService] ✓ Email SENT via [sorathiyajenish1112@gmail.com] to 1 recipient(s). ReplyTo=sorathiyajenish1112@gmail.com
+[2026-02-26 10:12:28.321] [OutlookAccountService] SendUsingAccount set to: advahc1@yahoo.com
+[2026-02-26 10:12:28.341] [OutlookAccountService] Reply-To set to: sorathiyajenish1112@gmail.com
+[2026-02-26 10:12:28.396] [OutlookAccountService] ✓ Email SENT via [advahc1@yahoo.com] to 1 recipient(s). ReplyTo=sorathiyajenish1112@gmail.com
+[2026-02-26 10:12:33.478] [OutlookAccountService] SendUsingAccount set to: sorathiyajenish1112@gmail.com
+[2026-02-26 10:12:33.497] [OutlookAccountService] Reply-To set to: sorathiyajenish1112@gmail.com
+[2026-02-26 10:12:33.519] [OutlookAccountService] ✓ Email SENT via [sorathiyajenish1112@gmail.com] to 1 recipient(s). ReplyTo=sorathiyajenish1112@gmail.com
+[2026-02-26 10:26:48.520] [OutlookAccountService] OutlookAccountService disposed. All COM objects released.
+[2026-02-26 10:27:02.623] [OutlookAccountService] Created new Outlook instance.
+[2026-02-26 10:27:02.743] [OutlookAccountService] Caching 2 Outlook account(s)...
+[2026-02-26 10:27:02.776] [OutlookAccountService]   ✓ Cached Account 1: sorathiyajenish1112@gmail.com (sorathiyajenish1112@gmail.com) - IMAP
+[2026-02-26 10:27:02.781] [OutlookAccountService]   ✓ Cached Account 2: advahc1@yahoo.com (advahc1@yahoo.com) - IMAP
+[2026-02-26 11:58:33.820] [OutlookAccountService] OutlookAccountService disposed. All COM objects released.

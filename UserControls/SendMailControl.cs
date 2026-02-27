@@ -30,6 +30,7 @@ public partial class SendMailControl : UserControl
     private Label lblProgress;
     private Label lblAccountInfo;
     private RichTextBox txtLog;
+    private TextBox txtReplyTo;
 
     private List<Recipient> _allRecipients = new();
     private List<Draft> _appDrafts = new();
@@ -144,11 +145,29 @@ public partial class SendMailControl : UserControl
             ForeColor = Color.FromArgb(25, 135, 84)
         };
 
+        // Row 4: Reply-To Account field
+        var lblReplyTo = new Label
+        {
+            Text = "Reply-To Account:",
+            Location = new Point(0, 165),
+            Size = new Size(145, 25),
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            ForeColor = Color.FromArgb(33, 37, 41)
+        };
+
+        txtReplyTo = new TextBox
+        {
+            Location = new Point(152, 162),
+            Size = new Size(340, 28),
+            Font = new Font("Segoe UI", 10),
+            PlaceholderText = "e.g. replies@yourcompany.com  (optional)"
+        };
+
         // Select All checkbox
         chkSelectAll = new CheckBox
         {
             Text = "Select All Recipients",
-            Location = new Point(0, 165),
+            Location = new Point(0, 200),
             Size = new Size(200, 25),
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             ForeColor = Color.FromArgb(33, 37, 41)
@@ -157,7 +176,7 @@ public partial class SendMailControl : UserControl
         // Recipients ListView
         listViewRecipients = new ListView
         {
-            Location = new Point(0, 195),
+            Location = new Point(0, 232),
             Size = new Size(980, 260),
             View = View.Details,
             FullRowSelect = true,
@@ -175,7 +194,7 @@ public partial class SendMailControl : UserControl
         // Button panel
         var buttonPanel = new Panel
         {
-            Location = new Point(0, 465),
+            Location = new Point(0, 502),
             Size = new Size(980, 50),
             BackColor = Color.White
         };
@@ -190,14 +209,14 @@ public partial class SendMailControl : UserControl
         var lblBatchSize = new Label
         {
             Text = "Batch Size (BCC):",
-            Location = new Point(0, 530),
+            Location = new Point(0, 567),
             Size = new Size(140, 25),
             Font = new Font("Segoe UI", 10, FontStyle.Bold)
         };
 
         txtBatchSize = new TextBox
         {
-            Location = new Point(150, 530),
+            Location = new Point(150, 567),
             Size = new Size(80, 30),
             Text = "50",
             Font = new Font("Segoe UI", 10)
@@ -206,14 +225,14 @@ public partial class SendMailControl : UserControl
         var lblDelay = new Label
         {
             Text = "Delay (seconds):",
-            Location = new Point(260, 530),
+            Location = new Point(260, 567),
             Size = new Size(130, 25),
             Font = new Font("Segoe UI", 10, FontStyle.Bold)
         };
 
         txtDelay = new TextBox
         {
-            Location = new Point(400, 530),
+            Location = new Point(400, 567),
             Size = new Size(80, 30),
             Text = "60",
             Font = new Font("Segoe UI", 10)
@@ -222,7 +241,7 @@ public partial class SendMailControl : UserControl
         btnStartSending = new Button
         {
             Text = "▶ Start Sending",
-            Location = new Point(520, 525),
+            Location = new Point(520, 562),
             Size = new Size(150, 40),
             BackColor = Color.FromArgb(40, 167, 69),
             ForeColor = Color.White,
@@ -235,7 +254,7 @@ public partial class SendMailControl : UserControl
         btnStopSending = new Button
         {
             Text = "⏹ Stop",
-            Location = new Point(680, 525),
+            Location = new Point(680, 562),
             Size = new Size(100, 40),
             BackColor = Color.FromArgb(220, 53, 69),
             ForeColor = Color.White,
@@ -248,7 +267,7 @@ public partial class SendMailControl : UserControl
 
         progressBar = new ProgressBar
         {
-            Location = new Point(0, 580),
+            Location = new Point(0, 617),
             Size = new Size(980, 25),
             Style = ProgressBarStyle.Continuous
         };
@@ -256,7 +275,7 @@ public partial class SendMailControl : UserControl
         lblProgress = new Label
         {
             Text = "Ready to send",
-            Location = new Point(0, 612),
+            Location = new Point(0, 649),
             Size = new Size(980, 25),
             Font = new Font("Segoe UI", 10),
             ForeColor = Color.FromArgb(108, 117, 125)
@@ -264,7 +283,7 @@ public partial class SendMailControl : UserControl
 
         txtLog = new RichTextBox
         {
-            Location = new Point(0, 640),
+            Location = new Point(0, 677),
             Size = new Size(980, 140),
             ReadOnly = true,
             Font = new Font("Consolas", 9),
@@ -277,6 +296,7 @@ public partial class SendMailControl : UserControl
             lblTemplateSource, cmbTemplateSource,
             lblDraft, cmbDraft, btnPreviewDraft,
             lblAccountInfo,
+            lblReplyTo, txtReplyTo,
             chkSelectAll,
             listViewRecipients, buttonPanel,
             lblBatchSize, txtBatchSize, lblDelay, txtDelay,
@@ -592,6 +612,18 @@ public partial class SendMailControl : UserControl
             return;
         }
 
+        // Validate Reply-To email if provided
+        var replyToEmail = txtReplyTo.Text.Trim();
+        if (!string.IsNullOrEmpty(replyToEmail))
+        {
+            if (!replyToEmail.Contains('@') || !replyToEmail.Contains('.'))
+            {
+                MessageBox.Show("Please enter a valid Reply-To email address (or leave it blank).",
+                    "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+        }
+
         var draft = _currentDrafts[cmbDraft.SelectedIndex];
 
         // --- Build BulkSendRequest ---
@@ -608,7 +640,9 @@ public partial class SendMailControl : UserControl
             DelaySeconds = delay,
             RotationStrategy = strategy,
             // Use ALL accounts for rotation — no manual selection needed
-            RotationAccountSmtps = _outlookAccounts.Select(a => a.SmtpAddress).ToList()
+            RotationAccountSmtps = _outlookAccounts.Select(a => a.SmtpAddress).ToList(),
+            // Reply-To (optional — empty means no Reply-To header set)
+            ReplyToEmail = string.IsNullOrWhiteSpace(replyToEmail) ? null : replyToEmail
         };
 
         // For single account, set the single account SMTP
